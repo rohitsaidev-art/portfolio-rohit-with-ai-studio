@@ -1,0 +1,15 @@
+# Robots policy for Aarav Sen — UX & Product Designer Portfolio
+# Explicitly excludes the private Design Workshop and unpublished draft notes.
+
+User-agent: *
+Allow: /
+Disallow: /design-system
+Disallow: /design-system/
+Disallow: /toc-lab
+Disallow: /toc/
+Disallow: /icons
+Disallow: /icon-lab
+Disallow: /notes/
+
+# Update the host URL below when attaching a custom production domain.
+Sitemap: https://aaravsen.design/sitemap.xml
