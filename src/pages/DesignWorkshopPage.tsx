@@ -26,21 +26,43 @@ import {
   type EffectTrackId,
   type VisualPaletteId,
 } from '../utils/workshopStore';
+import {
+  linkExperimentToDecision,
+  loadExperiments,
+  saveExperiments,
+  type StudioExperiment,
+} from '../utils/experimentsStore';
+import {
+  archiveSpecimens,
+  getAllWorkbenchSpecimens,
+  loadWorkbenchState,
+  restoreAllArchived,
+  restoreSpecimens,
+  saveWorkbenchState,
+  type WorkbenchMode,
+  type WorkbenchSpecimen,
+  type WorkbenchState,
+} from '../utils/workbenchStore';
+import { showToast } from '../utils/toast';
 import { FoundationsSection } from '../components/workshop/FoundationsSection';
 import { ComponentsSection } from '../components/workshop/ComponentsSection';
+import type { InspectedComponentSummary } from '../components/workshop/ComponentLibraryView';
 import { MotionIconsSoundSection } from '../components/workshop/MotionIconsSoundSection';
 import { EffectsLabSection } from '../components/workshop/EffectsLabSection';
 import { DecisionLogSection } from '../components/workshop/DecisionLogSection';
 import { StudioOverviewSection } from '../components/workshop/StudioOverviewSection';
-import { StudioPlannedSection } from '../components/workshop/StudioPlannedSection';
-import { TocLabPage } from './TocLabPage';
+import { PatternsSection } from '../components/workshop/PatternsSection';
+import { PageTemplatesSection } from '../components/workshop/PageTemplatesSection';
+import { ExperimentsSection } from '../components/workshop/ExperimentsSection';
+import { DocumentationHubSection } from '../components/workshop/DocumentationHubSection';
 import {
-  SFChevronLeft,
-  SFMoon,
-  SFSidebarLeft,
-  SFSunMax,
-  SFXmark,
-} from '../components/SFSymbols';
+  FlyToArchiveOverlay,
+  WorkbenchArchiveDrawer,
+  type FlyingArchiveCard,
+} from '../components/workshop/WorkbenchArchiveDrawer';
+import type { ArchiveOriginRect } from '../components/workshop/WorkbenchCanvasView';
+import { TocLabPage } from './TocLabPage';
+import { ChevronLeft, Moon, PanelLeft, Sun, X } from 'lucide-react';
 
 interface DesignWorkshopPageProps {
   section: DesignWorkshopSection;
@@ -54,21 +76,21 @@ function loadStoredSandboxPrefs(fallbackTheme: ResolvedTheme): {
   theme: ResolvedTheme;
 } {
   if (typeof window === 'undefined') {
-    return { palette: 'cool', theme: fallbackTheme };
+    return { palette: 'warm', theme: fallbackTheme };
   }
   try {
     const raw = window.localStorage.getItem(WORKSHOP_SANDBOX_STORAGE_KEY);
-    if (!raw) return { palette: 'cool', theme: fallbackTheme };
+    if (!raw) return { palette: 'warm', theme: fallbackTheme };
     const parsed = JSON.parse(raw) as { palette?: unknown; theme?: unknown };
     return {
-      palette: parsed.palette === 'warm' ? 'warm' : 'cool',
+      palette: parsed.palette === 'cool' ? 'cool' : 'warm',
       theme:
         parsed.theme === 'dark' || parsed.theme === 'light'
           ? parsed.theme
           : fallbackTheme,
     };
   } catch {
-    return { palette: 'cool', theme: fallbackTheme };
+    return { palette: 'warm', theme: fallbackTheme };
   }
 }
 
@@ -92,23 +114,40 @@ export function DesignWorkshopPage({
   const [decisionLog, setDecisionLog] = useState<DecisionLogEntry[]>(() =>
     loadDecisionLog(),
   );
+  const [experiments, setExperiments] = useState<StudioExperiment[]>(() =>
+    loadExperiments(),
+  );
+  const [focusedExperimentId, setFocusedExperimentId] = useState<string | null>(
+    null,
+  );
+  const [inspectedComponent, setInspectedComponent] =
+    useState<InspectedComponentSummary | null>(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
+  const [workbenchState, setWorkbenchState] = useState<WorkbenchState>(() =>
+    loadWorkbenchState(),
+  );
+  const [workbenchMode, setWorkbenchMode] = useState<WorkbenchMode>('browse');
+  const [archiveDrawerOpen, setArchiveDrawerOpen] = useState(false);
+  const [flyingCards, setFlyingCards] = useState<FlyingArchiveCard[]>([]);
+  const [archiveBump, setArchiveBump] = useState(false);
+
+  const archiveButtonRef = useRef<HTMLButtonElement | null>(null);
   const mobileMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
   const mobileDrawerCloseRef = useRef<HTMLButtonElement | null>(null);
   const previousSectionRef = useRef<DesignWorkshopSection>(section);
 
-  // Scroll workspace back to top smoothly when switching internal Studio sections
-  // (DesignWorkshopPage remains persistently mounted so the sidebar never flickers)
   useEffect(() => {
     if (previousSectionRef.current !== section) {
       previousSectionRef.current = section;
       scrollToTop('auto');
       setMobileNavOpen(false);
+      if (section !== 'components') {
+        setInspectedComponent(null);
+      }
     }
   }, [section]);
 
-  // Accessible mobile drawer keyboard Escape, focus management, and scroll lock
   useEffect(() => {
     if (!mobileNavOpen) return;
     const prevOverflow = document.body.style.overflow;
@@ -132,7 +171,6 @@ export function DesignWorkshopPage({
     };
   }, [mobileNavOpen]);
 
-  // Persist local sandbox palette/theme preview context (isolated to /design-system)
   useEffect(() => {
     try {
       window.localStorage.setItem(
@@ -144,15 +182,88 @@ export function DesignWorkshopPage({
     }
   }, [sandboxPrefs]);
 
-  // Persist Effects Lab settings locally (never affects public pages)
   useEffect(() => {
     saveEffectsConfig(effectsConfig);
   }, [effectsConfig]);
 
-  // Persist Decision Log locally (never auto-modifies production CSS)
   useEffect(() => {
     saveDecisionLog(decisionLog);
   }, [decisionLog]);
+
+  useEffect(() => {
+    saveExperiments(experiments);
+  }, [experiments]);
+
+  useEffect(() => {
+    saveWorkbenchState(workbenchState);
+  }, [workbenchState]);
+
+  const handleUpdateWorkbenchState = useCallback(
+    (updater: (prev: WorkbenchState) => WorkbenchState) => {
+      setWorkbenchState((prev) => updater(prev));
+    },
+    [],
+  );
+
+  const handleArchiveSpecimens = useCallback(
+    (ids: readonly string[], origins: readonly ArchiveOriginRect[]) => {
+      if (ids.length === 0) return;
+      playTick();
+
+      const targetRect = archiveButtonRef.current?.getBoundingClientRect();
+      if (targetRect && origins.length > 0) {
+        const toX = targetRect.left + targetRect.width / 2;
+        const toY = targetRect.top + targetRect.height / 2;
+        const now = Date.now();
+        const flights: FlyingArchiveCard[] = origins.slice(0, 6).map((orig, idx) => ({
+          id: `${orig.id}-${now}-${idx}`,
+          title: orig.title,
+          fromX: orig.rect.left,
+          fromY: orig.rect.top,
+          fromWidth: Math.min(orig.rect.width, 280),
+          fromHeight: Math.min(orig.rect.height, 140),
+          toX,
+          toY,
+        }));
+        setFlyingCards((prev) => [...prev, ...flights]);
+        window.setTimeout(() => {
+          setFlyingCards((prev) =>
+            prev.filter((item) => !flights.some((f) => f.id === item.id)),
+          );
+        }, 520);
+      }
+
+      setArchiveBump(true);
+      window.setTimeout(() => setArchiveBump(false), 380);
+
+      setWorkbenchState((prev) => archiveSpecimens(prev, ids));
+      showToast({
+        message:
+          ids.length === 1
+            ? 'Moved to Archive (non-destructive)'
+            : `Moved ${ids.length} specimens to Archive`,
+        tone: 'info',
+        durationMs: 2400,
+      });
+    },
+    [],
+  );
+
+  const handleOpenSpecimenDetail = useCallback(
+    (specimen: WorkbenchSpecimen) => {
+      onNavigate(specimen.detailPath);
+    },
+    [onNavigate],
+  );
+
+  const archivedSpecimens = (() => {
+    if (workbenchState.archivedIds.length === 0) return [];
+    const all = getAllWorkbenchSpecimens(workbenchState);
+    const map = new Map(all.map((s) => [s.id, s]));
+    return workbenchState.archivedIds
+      .map((id) => map.get(id))
+      .filter((s): s is WorkbenchSpecimen => Boolean(s));
+  })();
 
   const handleUpdateTrackConfig = useCallback(
     (trackId: EffectTrackId, next: EffectTrackConfig) => {
@@ -173,24 +284,88 @@ export function DesignWorkshopPage({
 
   const handleLogDecision = useCallback(
     (payload: {
-      subjectType: 'effect-track' | 'palette' | 'appearance' | 'toc';
+      subjectType: 'effect-track' | 'palette' | 'appearance' | 'toc' | 'experiment';
       subjectId: string;
       trackId?: EffectTrackId;
+      experimentId?: string;
       title: string;
       variantLabel: string;
       status: DecisionStatus;
       parameters: Record<string, string | number | boolean>;
       rationale: string;
     }) => {
-      setDecisionLog((prev) =>
-        upsertDecisionEntry(prev, {
+      let syncedDecisionId: string | null = null;
+      setDecisionLog((prev) => {
+        const next = upsertDecisionEntry(prev, {
           ...payload,
           paletteContext: sandboxPrefs.palette,
           themeContext: sandboxPrefs.theme,
-        }),
-      );
+        });
+        const matched = next.find(
+          (entry) =>
+            entry.subjectType === payload.subjectType &&
+            entry.subjectId === payload.subjectId &&
+            entry.variantLabel === payload.variantLabel &&
+            entry.paletteContext === sandboxPrefs.palette &&
+            entry.themeContext === sandboxPrefs.theme,
+        );
+        syncedDecisionId = matched?.id ?? next[0]?.id ?? null;
+        return next;
+      });
+      if (payload.experimentId && syncedDecisionId) {
+        const decId = syncedDecisionId;
+        setExperiments((prev) =>
+          linkExperimentToDecision(prev, payload.experimentId!, decId),
+        );
+      }
     },
     [sandboxPrefs.palette, sandboxPrefs.theme],
+  );
+
+  const handleSendExperimentToDecisionLog = useCallback(
+    (payload: {
+      experimentId: string;
+      title: string;
+      variantLabel: string;
+      status: DecisionStatus;
+      parameters: Record<string, string | number | boolean>;
+      rationale: string;
+    }) => {
+      const nextEntries = upsertDecisionEntry(decisionLog, {
+        subjectType: 'experiment',
+        subjectId: payload.experimentId,
+        experimentId: payload.experimentId,
+        title: payload.title,
+        variantLabel: payload.variantLabel,
+        status: payload.status,
+        parameters: payload.parameters,
+        rationale: payload.rationale,
+        paletteContext: sandboxPrefs.palette,
+        themeContext: sandboxPrefs.theme,
+      });
+      setDecisionLog(nextEntries);
+      const linked = nextEntries.find(
+        (entry) =>
+          entry.experimentId === payload.experimentId &&
+          entry.variantLabel === payload.variantLabel &&
+          entry.paletteContext === sandboxPrefs.palette &&
+          entry.themeContext === sandboxPrefs.theme,
+      );
+      if (linked) {
+        setExperiments((prev) =>
+          linkExperimentToDecision(prev, payload.experimentId, linked.id),
+        );
+      }
+    },
+    [decisionLog, sandboxPrefs.palette, sandboxPrefs.theme],
+  );
+
+  const handleRevisitExperiment = useCallback(
+    (experimentId: string) => {
+      setFocusedExperimentId(experimentId);
+      onNavigate('/design-system/experiments');
+    },
+    [onNavigate],
   );
 
   const handleUpdateDecisionStatus = useCallback(
@@ -238,9 +413,6 @@ export function DesignWorkshopPage({
   );
 
   const activeDest = getStudioDestination(section);
-  const approvedCount = decisionLog.filter(
-    (e) => e.status === 'approved' || e.status === 'promoted',
-  ).length;
 
   const handleNavClick = (
     event: React.MouseEvent<HTMLAnchorElement>,
@@ -260,10 +432,9 @@ export function DesignWorkshopPage({
 
   const renderSidebarNavigation = (isMobileDrawer: boolean) => (
     <div className="flex h-full flex-col">
-      {/* Sidebar Top Context */}
       <div
-        className={`border-b border-[var(--apple-separator-subtle)] px-4 ${
-          isMobileDrawer ? 'pb-4 pt-4' : 'pb-3 pt-3.5'
+        className={`border-b border-[var(--apple-separator-subtle)] px-5 ${
+          isMobileDrawer ? 'pb-4 pt-4' : 'pb-4 pt-5'
         }`}
       >
         <a
@@ -274,67 +445,57 @@ export function DesignWorkshopPage({
             setMobileNavOpen(false);
             onNavigate('/');
           }}
-          className="apple-link inline-flex items-center gap-1 text-[12px] font-medium text-[var(--apple-link)] hover:underline"
+          className="apple-link inline-flex items-center gap-1 text-[12px] font-medium text-[var(--apple-label-tertiary)] transition-colors hover:text-[var(--apple-label-primary)]"
         >
-          <SFChevronLeft size={12} />
-          <span>Public Portfolio</span>
+          <ChevronLeft size={12} strokeWidth={2} aria-hidden="true" />
+          <span>Portfolio</span>
         </a>
-        <div className="mt-2 flex items-baseline justify-between gap-2">
-          <p className="font-display text-[15px] font-semibold tracking-[-0.02em] text-[var(--apple-label-primary)]">
-            Design Studio
-          </p>
-          <span className="text-[11px] text-[var(--apple-label-tertiary)]">
-            Internal
-          </span>
-        </div>
+        <p className="font-display mt-2 text-[15.5px] font-semibold tracking-[-0.02em] text-[var(--apple-label-primary)]">
+          Portfolio Studio
+        </p>
       </div>
 
-      {/* Grouped Navigation */}
       <nav
         aria-label={
           isMobileDrawer
             ? 'Design Studio mobile navigation'
             : 'Design Studio navigation'
         }
-        className={`flex-1 overflow-y-auto px-3 ${
-          isMobileDrawer ? 'space-y-5 py-4' : 'space-y-3.5 py-3.5'
+        className={`flex-1 overflow-y-auto px-3.5 ${
+          isMobileDrawer ? 'space-y-6 py-5' : 'space-y-5 py-5'
         }`}
       >
         {STUDIO_NAV_GROUPS.map((group) => (
           <div key={group.id}>
-            <p className="mb-1 px-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--apple-label-tertiary)]">
+            <p className="mb-1.5 px-2.5 text-[11px] font-medium tracking-[-0.005em] text-[var(--apple-label-tertiary)]">
               {group.label}
             </p>
             <ul className="space-y-0.5">
               {group.items.map((item) => {
                 const isActive = section === item.id;
-                const isPlanned = item.status === 'planned';
                 return (
                   <li key={item.id}>
                     <a
                       href={item.path}
                       onClick={(e) => handleNavClick(e, item.path, isActive)}
                       aria-current={isActive ? 'page' : undefined}
-                      className={`apple-link flex items-center justify-between gap-2 rounded-[8px] px-2.5 text-[13px] tracking-[-0.01em] transition-colors ${
-                        isMobileDrawer ? 'min-h-[44px] text-[14px]' : 'min-h-[29px]'
+                      className={`apple-link flex items-center justify-between gap-2 rounded-[9px] px-2.5 text-[13.5px] tracking-[-0.01em] transition-colors ${
+                        isMobileDrawer ? 'min-h-[44px] text-[14.5px]' : 'min-h-[32px]'
                       } ${
                         isActive
                           ? 'bg-[var(--apple-control-tonal)] font-semibold text-[var(--apple-label-primary)]'
-                          : isPlanned
-                            ? 'font-normal text-[var(--apple-label-tertiary)] hover:bg-[var(--apple-control-tonal)]/55 hover:text-[var(--apple-label-secondary)]'
-                            : 'font-normal text-[var(--apple-label-secondary)] hover:bg-[var(--apple-control-tonal)]/60 hover:text-[var(--apple-label-primary)]'
+                          : 'font-normal text-[var(--apple-label-secondary)] hover:bg-[var(--apple-control-tonal)]/50 hover:text-[var(--apple-label-primary)]'
                       }`}
                     >
                       <span className="truncate">{item.label}</span>
-                      {isPlanned && (
-                        <span className="shrink-0 text-[10.5px] font-normal text-[var(--apple-label-tertiary)]">
-                          Planned
+                      {item.id === 'experiments' && experiments.length > 0 && (
+                        <span className="shrink-0 tabular-nums text-[11px] font-normal text-[var(--apple-label-tertiary)]">
+                          {experiments.length}
                         </span>
                       )}
                       {item.id === 'decisions' && decisionLog.length > 0 && (
-                        <span className="shrink-0 tabular-nums text-[10.5px] font-normal text-[var(--apple-label-tertiary)]">
+                        <span className="shrink-0 tabular-nums text-[11px] font-normal text-[var(--apple-label-tertiary)]">
                           {decisionLog.length}
-                          {approvedCount > 0 ? ` · ${approvedCount}✓` : ''}
                         </span>
                       )}
                     </a>
@@ -351,8 +512,8 @@ export function DesignWorkshopPage({
   return (
     <div className="min-h-[calc(100vh-52px)] bg-[var(--apple-bg)] text-[var(--apple-label-primary)]">
       {/* Mobile / Tablet Sticky Studio Bar (< lg) */}
-      <div className="sticky top-[52px] z-30 border-b border-[var(--apple-separator)] bg-[var(--apple-surface-glass)] backdrop-blur-xl backdrop-saturate-[180%] lg:hidden">
-        <div className="flex h-[48px] items-center justify-between gap-2 px-3 sm:px-5">
+      <div className="editorial-nav-surface sticky top-[52px] z-30 border-b border-[var(--apple-separator)] lg:hidden">
+        <div className="flex h-[48px] items-center justify-between gap-2 px-3 sm:px-6">
           <button
             ref={mobileMenuTriggerRef}
             type="button"
@@ -362,13 +523,13 @@ export function DesignWorkshopPage({
             }}
             aria-expanded={mobileNavOpen}
             aria-controls="studio-mobile-drawer"
-            className="apple-link inline-flex min-h-[44px] items-center gap-2 rounded-[10px] px-2 text-[13px] font-medium text-[var(--apple-label-primary)]"
+            className="apple-link inline-flex min-h-[44px] items-center gap-2 rounded-[10px] px-2 text-[13.5px] font-medium text-[var(--apple-label-primary)]"
           >
-            <SFSidebarLeft size={16} className="text-[var(--apple-link)]" />
-            <span>Studio</span>
+            <PanelLeft size={16} strokeWidth={1.75} aria-hidden="true" className="text-[var(--apple-link)]" />
+            <span>Menu</span>
           </button>
 
-          <p className="min-w-0 truncate text-[12.5px] text-[var(--apple-label-secondary)]">
+          <p className="min-w-0 truncate text-[13px] text-[var(--apple-label-secondary)]">
             <span className="text-[var(--apple-label-tertiary)]">
               {activeDest.groupLabel} /{' '}
             </span>
@@ -407,11 +568,11 @@ export function DesignWorkshopPage({
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ duration: 0.26, ease: EASE_APPLE }}
-              className="fixed inset-y-0 left-0 flex w-[288px] max-w-[85vw] flex-col border-r border-[var(--apple-separator)] bg-[var(--apple-bg)] shadow-2xl"
+              className="fixed inset-y-0 left-0 flex w-[280px] max-w-[85vw] flex-col border-r border-[var(--apple-separator)] bg-[var(--apple-bg)] shadow-2xl"
             >
-              <div className="flex items-center justify-between border-b border-[var(--apple-separator-subtle)] px-4 py-2">
-                <span className="text-[12px] font-semibold uppercase tracking-[0.07em] text-[var(--apple-label-tertiary)]">
-                  Navigation
+              <div className="flex items-center justify-between border-b border-[var(--apple-separator-subtle)] px-5 py-2">
+                <span className="text-[12px] font-medium text-[var(--apple-label-tertiary)]">
+                  Studio Navigation
                 </span>
                 <button
                   ref={mobileDrawerCloseRef}
@@ -424,7 +585,7 @@ export function DesignWorkshopPage({
                   aria-label="Close Design Studio navigation"
                   className="apple-btn-icon h-11 w-11 text-[var(--apple-label-secondary)] hover:text-[var(--apple-label-primary)]"
                 >
-                  <SFXmark size={17} />
+                  <X size={17} strokeWidth={1.75} aria-hidden="true" />
                 </button>
               </div>
               <div className="min-h-0 flex-1">
@@ -435,173 +596,240 @@ export function DesignWorkshopPage({
         )}
       </AnimatePresence>
 
-      {/* Persistent Desktop Two-Column Editorial Workspace Shell */}
+      {/* Persistent Two-Column Studio Workspace */}
       <div className="flex min-h-[calc(100vh-52px)]">
         <aside
           aria-label="Design Studio sidebar"
-          className="sticky top-[52px] hidden h-[calc(100vh-52px)] w-[264px] shrink-0 border-r border-[var(--apple-separator)] bg-[var(--apple-bg-secondary)]/55 lg:block"
+          className="sticky top-[52px] hidden h-[calc(100vh-52px)] w-[248px] shrink-0 border-r border-[var(--apple-separator-subtle)] bg-[var(--apple-bg)] lg:block"
         >
           {renderSidebarNavigation(false)}
         </aside>
 
-        {/* Main Workspace Content Pane */}
+        {/* Main Workspace Canvas */}
         <div className="min-w-0 flex-1">
-          <div className="mx-auto w-full max-w-[1040px] px-5 py-8 sm:px-10 sm:py-12">
-            {/* Editorial Workspace Page Header */}
-            <header className="border-b border-[var(--apple-separator)] pb-8">
-              {/* Breadcrumb Hierarchy */}
-              <nav
-                aria-label="Studio breadcrumb"
-                className="flex flex-wrap items-center gap-1.5 text-[12.5px] text-[var(--apple-label-tertiary)]"
-              >
-                {section === 'overview' ? (
-                  <span className="font-medium text-[var(--apple-label-secondary)]">
-                    Design Studio
-                  </span>
-                ) : (
-                  <a
-                    href="/design-system"
-                    onClick={(e) => handleNavClick(e, '/design-system', false)}
-                    className="apple-link text-[var(--apple-label-secondary)] hover:text-[var(--apple-label-primary)] hover:underline"
-                  >
-                    Design Studio
-                  </a>
-                )}
-                <span aria-hidden="true">/</span>
-                <span>{activeDest.groupLabel}</span>
-                <span aria-hidden="true">/</span>
-                <span
-                  aria-current="page"
-                  className="font-medium text-[var(--apple-label-primary)]"
-                >
-                  {activeDest.label}
-                </span>
-              </nav>
-
-              <div className="mt-4 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+          <div className="mx-auto w-full max-w-[1280px] px-5 py-8 sm:px-10 sm:py-11">
+            {/* Clean Page Header (streamlined into breadcrumb + sandbox bar when inspecting a component detail page) */}
+            <header
+              className={`border-b border-[var(--apple-separator-subtle)] ${
+                section === 'components' && inspectedComponent ? 'pb-5' : 'pb-7'
+              }`}
+            >
+              <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
                 <div className="min-w-0">
-                  <h1 className="type-title-1 text-[var(--apple-label-primary)]">
-                    {activeDest.label}
-                  </h1>
-                  <p className="type-callout measure-prose mt-2 text-[var(--apple-label-secondary)]">
-                    {activeDest.description}
-                  </p>
-                  {activeDest.status === 'planned' ? (
-                    <p className="mt-2 text-[12px] font-medium text-[var(--apple-label-tertiary)]">
-                      Planned · Cycle 2 Stage 2+
-                    </p>
-                  ) : activeDest.migratedModules ? (
-                    <p className="mt-2 text-[12px] text-[var(--apple-label-tertiary)]">
-                      {activeDest.migratedModules}
-                    </p>
-                  ) : null}
+                  <nav
+                    aria-label="Studio breadcrumb"
+                    className="flex flex-wrap items-center gap-1.5 text-[12px] text-[var(--apple-label-tertiary)]"
+                  >
+                    {section === 'overview' ? (
+                      <span>Studio</span>
+                    ) : (
+                      <a
+                        href="/design-system"
+                        onClick={(e) => handleNavClick(e, '/design-system', false)}
+                        className="apple-link hover:text-[var(--apple-label-primary)] hover:underline"
+                      >
+                        Studio
+                      </a>
+                    )}
+                    <span aria-hidden="true">/</span>
+                    <span>{activeDest.groupLabel}</span>
+                    {section !== 'overview' && (
+                      <>
+                        <span aria-hidden="true">/</span>
+                        {section === 'components' && inspectedComponent ? (
+                          <>
+                            <a
+                              href="/design-system/components"
+                              onClick={(e) => {
+                                if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                                e.preventDefault();
+                                playTick();
+                                window.history.pushState({}, '', '/design-system/components');
+                                window.dispatchEvent(new PopStateEvent('popstate'));
+                              }}
+                              className="apple-link hover:text-[var(--apple-label-primary)] hover:underline"
+                            >
+                              {activeDest.label}
+                            </a>
+                            <span aria-hidden="true">/</span>
+                            <span
+                              aria-current="page"
+                              className="font-medium text-[var(--apple-label-secondary)]"
+                            >
+                              {inspectedComponent.name}
+                            </span>
+                          </>
+                        ) : (
+                          <span
+                            aria-current="page"
+                            className="font-medium text-[var(--apple-label-secondary)]"
+                          >
+                            {activeDest.label}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </nav>
+
+                  {!(section === 'components' && inspectedComponent) && (
+                    <>
+                      <h1 className="type-title-1 mt-2 text-[var(--apple-label-primary)]">
+                        {activeDest.label}
+                      </h1>
+                      <p className="mt-2 max-w-[62ch] text-[15px] leading-[1.55] text-[var(--apple-label-secondary)]">
+                        {activeDest.description}
+                      </p>
+                    </>
+                  )}
                 </div>
 
-                {/* Isolated Sandbox Preview Controls */}
-                {activeDest.supportsSandboxContext && (
-                  <div className="flex shrink-0 flex-wrap items-center gap-2">
-                    <div
-                      role="group"
-                      aria-label="Sandbox palette preview"
-                      className="apple-segmented"
-                    >
-                      {(
-                        [
-                          { id: 'cool', label: 'Cool Neutral' },
-                          { id: 'warm', label: 'Warm Neutral' },
-                        ] as const
-                      ).map((opt) => {
-                        const active = sandboxPrefs.palette === opt.id;
-                        return (
-                          <button
-                            key={opt.id}
-                            type="button"
-                            aria-pressed={active}
-                            onClick={() => {
-                              playTick();
-                              setSandboxPrefs((prev) => ({
-                                ...prev,
-                                palette: opt.id,
-                              }));
-                            }}
-                            className={`apple-segmented-item !min-h-[32px] px-3 py-1 text-[12.5px] ${
-                              active
-                                ? 'text-[var(--apple-label-primary)]'
-                                : 'text-[var(--apple-label-secondary)] hover:text-[var(--apple-label-primary)]'
-                            }`}
-                          >
-                            {active && (
-                              <motion.span
-                                layoutId="ws-sandbox-palette-thumb"
-                                transition={SPRING_SEGMENT}
-                                className="apple-pill-shadow absolute inset-0 rounded-full bg-[var(--apple-control-thumb)]"
-                              />
-                            )}
-                            <span className="relative z-10">{opt.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                {/* Unobtrusive Sandbox Preview Switcher + Persistent Archive Drawer Trigger */}
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
+                  {activeDest.supportsSandboxContext && (
+                    <>
+                      <div
+                        role="group"
+                        aria-label="Sandbox palette preview"
+                        className="apple-segmented"
+                      >
+                        {(
+                          [
+                            { id: 'cool', label: 'Cool' },
+                            { id: 'warm', label: 'Warm' },
+                          ] as const
+                        ).map((opt) => {
+                          const active = sandboxPrefs.palette === opt.id;
+                          return (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              aria-pressed={active}
+                              onClick={() => {
+                                playTick();
+                                setSandboxPrefs((prev) => ({
+                                  ...prev,
+                                  palette: opt.id,
+                                }));
+                              }}
+                              className={`apple-segmented-item !min-h-[30px] whitespace-nowrap px-3 py-1 text-[12px] ${
+                                active
+                                  ? 'text-[var(--apple-label-primary)]'
+                                  : 'text-[var(--apple-label-secondary)] hover:text-[var(--apple-label-primary)]'
+                              }`}
+                            >
+                              {active && (
+                                <motion.span
+                                  layoutId="ws-sandbox-palette-thumb"
+                                  transition={SPRING_SEGMENT}
+                                  className="apple-pill-shadow absolute inset-0 rounded-full bg-[var(--apple-control-thumb)]"
+                                />
+                              )}
+                              <span className="relative z-10">{opt.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
 
-                    <div
-                      role="group"
-                      aria-label="Sandbox theme preview"
-                      className="apple-segmented"
+                      <div
+                        role="group"
+                        aria-label="Sandbox theme preview"
+                        className="apple-segmented"
+                      >
+                        {(
+                          [
+                            { id: 'light', label: 'Light', icon: Sun },
+                            { id: 'dark', label: 'Dark', icon: Moon },
+                          ] as const
+                        ).map((opt) => {
+                          const active = sandboxPrefs.theme === opt.id;
+                          const Icon = opt.icon;
+                          return (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              aria-pressed={active}
+                              onClick={() => {
+                                playTick();
+                                setSandboxPrefs((prev) => ({
+                                  ...prev,
+                                  theme: opt.id,
+                                }));
+                              }}
+                              className={`apple-segmented-item !min-h-[30px] whitespace-nowrap px-2.5 py-1 text-[12px] ${
+                                active
+                                  ? 'text-[var(--apple-label-primary)]'
+                                  : 'text-[var(--apple-label-secondary)] hover:text-[var(--apple-label-primary)]'
+                              }`}
+                            >
+                              {active && (
+                                <motion.span
+                                  layoutId="ws-sandbox-theme-thumb"
+                                  transition={SPRING_SEGMENT}
+                                  className="apple-pill-shadow absolute inset-0 rounded-full bg-[var(--apple-control-thumb)]"
+                                />
+                              )}
+                              <span className="relative z-10 inline-flex items-center gap-1.5">
+                                <Icon size={12} strokeWidth={2} aria-hidden="true" />
+                                <span>{opt.label}</span>
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+
+                  <motion.button
+                    ref={archiveButtonRef}
+                    type="button"
+                    aria-expanded={archiveDrawerOpen}
+                    aria-label={`Open Archive drawer (${archivedSpecimens.length} archived)`}
+                    animate={
+                      archiveBump
+                        ? { scale: [1, 1.09, 1] }
+                        : { scale: 1 }
+                    }
+                    transition={{ duration: 0.34, ease: EASE_APPLE }}
+                    onClick={() => {
+                      playTick();
+                      setArchiveDrawerOpen(true);
+                    }}
+                    className={`inline-flex min-h-[34px] items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-[12px] font-medium transition-colors ${
+                      archivedSpecimens.length > 0
+                        ? 'border-[var(--apple-separator-strong)] bg-[var(--apple-surface-elevated)] text-[var(--apple-label-primary)] shadow-2xs hover:border-[var(--apple-blue)]'
+                        : 'border-[var(--apple-separator)] bg-[var(--apple-bg-secondary)]/70 text-[var(--apple-label-secondary)] hover:text-[var(--apple-label-primary)]'
+                    }`}
+                  >
+                    <span>Archive</span>
+                    <span
+                      className={`tabular-nums text-[11px] font-semibold ${
+                        archivedSpecimens.length > 0
+                          ? 'text-[var(--apple-blue)]'
+                          : 'text-[var(--apple-label-tertiary)]'
+                      }`}
                     >
-                      {(
-                        [
-                          { id: 'light', label: 'Light', icon: SFSunMax },
-                          { id: 'dark', label: 'Dark', icon: SFMoon },
-                        ] as const
-                      ).map((opt) => {
-                        const active = sandboxPrefs.theme === opt.id;
-                        const Icon = opt.icon;
-                        return (
-                          <button
-                            key={opt.id}
-                            type="button"
-                            aria-pressed={active}
-                            onClick={() => {
-                              playTick();
-                              setSandboxPrefs((prev) => ({
-                                ...prev,
-                                theme: opt.id,
-                              }));
-                            }}
-                            className={`apple-segmented-item !min-h-[32px] px-3 py-1 text-[12.5px] ${
-                              active
-                                ? 'text-[var(--apple-label-primary)]'
-                                : 'text-[var(--apple-label-secondary)] hover:text-[var(--apple-label-primary)]'
-                            }`}
-                          >
-                            {active && (
-                              <motion.span
-                                layoutId="ws-sandbox-theme-thumb"
-                                transition={SPRING_SEGMENT}
-                                className="apple-pill-shadow absolute inset-0 rounded-full bg-[var(--apple-control-thumb)]"
-                              />
-                            )}
-                            <span className="relative z-10 inline-flex items-center gap-1.5">
-                              <Icon size={13} />
-                              <span>{opt.label}</span>
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
+                      {archivedSpecimens.length}
+                    </span>
+                  </motion.button>
+                </div>
               </div>
             </header>
 
             {/* Active Workspace Body */}
-            <div className="pt-10">
+            <div className="pt-9">
               {section === 'overview' && (
                 <StudioOverviewSection
                   sandboxPalette={sandboxPrefs.palette}
                   sandboxTheme={sandboxPrefs.theme}
                   appliedTocVariant={appliedTocVariant}
                   decisionLog={decisionLog}
+                  experiments={experiments}
+                  workbenchState={workbenchState}
+                  workbenchMode={workbenchMode}
+                  onWorkbenchModeChange={setWorkbenchMode}
+                  onUpdateWorkbenchState={handleUpdateWorkbenchState}
+                  onArchiveSpecimens={handleArchiveSpecimens}
+                  onOpenSpecimenDetail={handleOpenSpecimenDetail}
                   onNavigate={onNavigate}
                 />
               )}
@@ -630,12 +858,38 @@ export function DesignWorkshopPage({
                   view={section}
                   sandboxPalette={sandboxPrefs.palette}
                   sandboxTheme={sandboxPrefs.theme}
+                  appliedTocVariant={appliedTocVariant}
+                  experimentsCount={experiments.length}
+                  workbenchState={workbenchState}
+                  workbenchMode={workbenchMode}
+                  onWorkbenchModeChange={setWorkbenchMode}
+                  onUpdateWorkbenchState={handleUpdateWorkbenchState}
+                  onArchiveSpecimens={handleArchiveSpecimens}
                   onNavigate={onNavigate}
+                  onInspectComponentChange={setInspectedComponent}
+                />
+              )}
+
+              {section === 'patterns' && (
+                <PatternsSection
+                  sandboxPalette={sandboxPrefs.palette}
+                  sandboxTheme={sandboxPrefs.theme}
+                />
+              )}
+
+              {section === 'page-templates' && (
+                <PageTemplatesSection
+                  sandboxPalette={sandboxPrefs.palette}
+                  sandboxTheme={sandboxPrefs.theme}
                 />
               )}
 
               {(section === 'motion' || section === 'icons-sound') && (
-                <MotionIconsSoundSection view={section} />
+                <MotionIconsSoundSection
+                  view={section}
+                  sandboxPalette={sandboxPrefs.palette}
+                  sandboxTheme={sandboxPrefs.theme}
+                />
               )}
 
               {section === 'effects' && (
@@ -673,6 +927,23 @@ export function DesignWorkshopPage({
                 />
               )}
 
+              {section === 'experiments' && (
+                <ExperimentsSection
+                  experiments={experiments}
+                  sandboxPalette={sandboxPrefs.palette}
+                  sandboxTheme={sandboxPrefs.theme}
+                  focusedExperimentId={focusedExperimentId}
+                  decisionLog={decisionLog}
+                  onUpdateExperiments={setExperiments}
+                  onSendToDecisionLog={handleSendExperimentToDecisionLog}
+                  onNavigateToDecisions={() => onNavigate('/design-system/decisions')}
+                />
+              )}
+
+              {section === 'documentation' && (
+                <DocumentationHubSection onNavigate={onNavigate} />
+              )}
+
               {section === 'decisions' && (
                 <DecisionLogSection
                   entries={decisionLog}
@@ -681,23 +952,56 @@ export function DesignWorkshopPage({
                   onDeleteEntry={handleDeleteDecision}
                   onImportEntries={handleImportDecisions}
                   onRevisitEffectTrack={handleRevisitEffectTrack}
+                  onRevisitExperiment={handleRevisitExperiment}
                   onPromoteApproved={handlePromoteApproved}
-                />
-              )}
-
-              {(section === 'patterns' ||
-                section === 'page-templates' ||
-                section === 'experiments' ||
-                section === 'documentation') && (
-                <StudioPlannedSection
-                  destination={activeDest}
-                  onNavigate={onNavigate}
                 />
               )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Persistent Fly-to-Archive Animation Layer */}
+      <FlyToArchiveOverlay cards={flyingCards} />
+
+      {/* Persistent Right-Side Archive Drawer */}
+      <WorkbenchArchiveDrawer
+        open={archiveDrawerOpen}
+        onClose={() => setArchiveDrawerOpen(false)}
+        archivedSpecimens={archivedSpecimens}
+        sandboxPalette={sandboxPrefs.palette}
+        sandboxTheme={sandboxPrefs.theme}
+        appliedTocVariant={appliedTocVariant}
+        experimentsCount={experiments.length}
+        onRestoreOne={(id) => {
+          setWorkbenchState((prev) => restoreSpecimens(prev, [id]));
+          showToast({
+            message: 'Restored specimen to main canvas',
+            tone: 'success',
+            durationMs: 2200,
+          });
+        }}
+        onRestoreBulk={(ids) => {
+          setWorkbenchState((prev) => restoreSpecimens(prev, ids));
+          showToast({
+            message: `Restored ${ids.length} specimens to main canvas`,
+            tone: 'success',
+            durationMs: 2400,
+          });
+        }}
+        onRestoreAll={() => {
+          setWorkbenchState((prev) => restoreAllArchived(prev));
+          showToast({
+            message: 'Restored all archived specimens',
+            tone: 'success',
+            durationMs: 2400,
+          });
+        }}
+        onOpenDetail={(spec) => {
+          setArchiveDrawerOpen(false);
+          handleOpenSpecimenDetail(spec);
+        }}
+      />
     </div>
   );
 }

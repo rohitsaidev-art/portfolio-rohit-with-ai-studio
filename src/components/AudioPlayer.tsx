@@ -1,6 +1,19 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
+  AudioLines,
+  ChevronDown,
+  Headphones,
+  Maximize2,
+  Minimize2,
+  Pause,
+  Play,
+  RotateCcw,
+  SlidersHorizontal,
+  X,
+} from 'lucide-react';
+import { AnimatedMuteIcon } from './icons/MuteToggle';
+import {
   setFloatingAudioDockActive,
   useMobileReadingBarVisible,
 } from '../utils/floatingDock';
@@ -26,36 +39,57 @@ import {
   playTick,
 } from '../utils/soundEngine';
 import { EASE_APPLE } from '../utils/motion';
+import { scrollToElementById } from '../utils/scroll';
+import { AppleTooltip } from './AppleTooltip';
 import { AudioWaveform, MiniAudioEqualizer } from './AudioWaveform';
-import {
-  SFChevronDown,
-  SFGoBackward15,
-  SFGoForward15,
-  SFHeadphones,
-  SFPauseFill,
-  SFPlayFill,
-  SFReset,
-  SFSliders,
-  SFSpeakerSlash,
-  SFSpeakerWave,
-  SFWaveform,
-  SFXmark,
-} from './SFSymbols';
+import { HandTapIcon, SkipBack15Icon, SkipForward15Icon } from './icons/AudioSkipIcons';
+
+export type AudioPlayerVariant = 'editorial' | 'contextual-floating';
+
+export const AUDIO_PLAYER_VARIANTS: readonly {
+  id: AudioPlayerVariant;
+  name: string;
+  description: string;
+}[] = [
+  {
+    id: 'editorial',
+    name: 'Editorial Deck & Floating Dock',
+    description:
+      'Full inline narration card with waveform, voice tuning, and auto-docking Now Playing bar.',
+  },
+  {
+    id: 'contextual-floating',
+    name: 'Contextual Floating Pill',
+    description:
+      'Minimal pill-shaped persistent player with segmented chapter track and context-aware Jump to Speaker.',
+  },
+];
 
 export interface AudioPlayerProps {
   title: string;
   segments: NarrationSegment[];
+  /** Selectable player architecture. Defaults to 'editorial' to preserve existing usage. */
+  variant?: AudioPlayerVariant;
+  /** Rendering mode for the 'contextual-floating' variant ('floating' fixed at viewport bottom, or 'inline' for embedded placement). */
+  contextualDisplayMode?: 'floating' | 'inline';
+  /** When contextualDisplayMode is 'inline', smoothly floats the pill at viewport bottom once scrolled past during playback. */
+  autoFloatOnScroll?: boolean;
+  /** When true, compresses the floating pill into a short compact capsule (e.g. after scrolling past the article into the next section). */
+  compressed?: boolean;
+  /** Optional preview override for the contextual Jump to Speaker out-of-context state (used in Studio specimens). */
+  forceOutOfContext?: boolean;
   onActiveSectionChange?: (sectionId: string | null) => void;
   onJumpToSection?: (sectionId: string) => void;
   onPlaybackChange?: (playing: boolean) => void;
   compactFloatingOffsetClass?: string;
   idleLabel?: string;
+  /** @deprecated Helper caption removed for cleaner visual hierarchy */
   helperText?: string;
   anchorId?: string;
 }
 
-const PLAYBACK_RATES = [0.85, 1, 1.25, 1.5, 2] as const;
-const DEFAULT_RATE_INDEX = 1; // 1×
+const PLAYBACK_RATES = [1, 1.25, 1.5, 2] as const;
+const DEFAULT_RATE_INDEX = 1; // 1.25×
 const PITCH_PRESETS = [
   { label: 'Calm', value: 0.92 },
   { label: 'Natural', value: DEFAULT_SPEECH_TUNING.pitch },
@@ -63,7 +97,7 @@ const PITCH_PRESETS = [
 ] as const;
 
 const LEGACY_VOICE_STORAGE_KEY = 'portfolio_narration_voice_uri';
-const PREFS_STORAGE_KEY = 'portfolio_narration_voice_prefs';
+const PREFS_STORAGE_KEY = 'portfolio_narration_voice_prefs_v2';
 const SENTENCE_PAUSE_MS = 135;
 const CHAPTER_PAUSE_MS = 380;
 
@@ -163,12 +197,17 @@ function hasOpenModal(): boolean {
 export function AudioPlayer({
   title,
   segments,
+  variant = 'editorial',
+  contextualDisplayMode = 'floating',
+  autoFloatOnScroll = false,
+  compressed = false,
+  forceOutOfContext,
   onActiveSectionChange,
   onJumpToSection,
   onPlaybackChange,
   compactFloatingOffsetClass,
   idleLabel = 'Listen to case study',
-  helperText = 'Drag the timeline or tap the waveform to jump straight to that chapter.',
+  helperText: _helperText,
   anchorId = 'audio-narration-player',
 }: AudioPlayerProps) {
   const dockId = useId();
@@ -204,6 +243,7 @@ export function AudioPlayer({
   const [speakerSectionOutOfView, setSpeakerSectionOutOfView] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [tuningOpen, setTuningOpen] = useState(false);
+  const [manualExpanded, setManualExpanded] = useState(false);
 
   const inlineRef = useRef<HTMLDivElement | null>(null);
   const tuningContainerRef = useRef<HTMLDivElement | null>(null);
@@ -216,7 +256,8 @@ export function AudioPlayer({
   // Tracks when real Web Speech synthesis is driving progression vs muted/fallback timer
   const speechDrivenRef = useRef(false);
   const chunkCeilingSecRef = useRef(0);
-  const rate = PLAYBACK_RATES[rateIndex] ?? 1;
+  const jumpSuppressUntilRef = useRef(0);
+  const rate = PLAYBACK_RATES[rateIndex] ?? PLAYBACK_RATES[DEFAULT_RATE_INDEX];
 
   const displayedTime = dragPreviewTime ?? currentTime;
   const activePosition = useMemo(
@@ -224,6 +265,10 @@ export function AudioPlayer({
     [timeline, displayedTime],
   );
   const activeSegmentId = isPlaying ? activePosition?.segment.id ?? null : null;
+  const observedSpeakerSegmentId =
+    variant === 'contextual-floating'
+      ? (activePosition?.segment.id ?? null)
+      : activeSegmentId;
 
   const progressRatio =
     timeline.totalDurationSec > 0
@@ -278,7 +323,7 @@ export function AudioPlayer({
       try {
         const list = window.speechSynthesis.getVoices();
         if (!Array.isArray(list) || list.length === 0) return;
-        const curated = rankSpeechVoices(list, 14);
+        const curated = rankSpeechVoices(list, 14, { gender: 'male' });
         setRankedVoices(curated);
       } catch {
         // Ignore restricted speechSynthesis environments
@@ -320,7 +365,9 @@ export function AudioPlayer({
       }
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
         try {
-          const fresh = rankSpeechVoices(window.speechSynthesis.getVoices(), 14);
+          const fresh = rankSpeechVoices(window.speechSynthesis.getVoices(), 14, {
+            gender: 'male',
+          });
           if (fresh.length > 0) {
             if (voiceUri) {
               const explicit = fresh.find((r) => r.voice.voiceURI === voiceUri);
@@ -615,10 +662,18 @@ export function AudioPlayer({
     setFloatingDismissed(false);
     setSpeakerSectionOutOfView(false);
     setTuningOpen(false);
+    setManualExpanded(false);
     lastScrubSegmentIdRef.current = null;
     onActiveSectionChange?.(null);
     onPlaybackChange?.(false);
   }, [title, segmentSignature, stopSpeech, onActiveSectionChange, onPlaybackChange]);
+
+  // Reset manual expand override whenever user scrolls back into the active article
+  useEffect(() => {
+    if (!compressed) {
+      setManualExpanded(false);
+    }
+  }, [compressed]);
 
   // Notify parent on playback status changes
   useEffect(() => {
@@ -647,16 +702,16 @@ export function AudioPlayer({
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [variant, contextualDisplayMode, autoFloatOnScroll]);
 
   // Track whether the currently narrating section is scrolled out of view (P2.5 Jump Back to Speaker)
   useEffect(() => {
-    if (!activeSegmentId || typeof IntersectionObserver === 'undefined') {
+    if (!observedSpeakerSegmentId || typeof IntersectionObserver === 'undefined') {
       setSpeakerSectionOutOfView(false);
       return;
     }
 
-    const sectionEl = document.getElementById(activeSegmentId);
+    const sectionEl = document.getElementById(observedSpeakerSegmentId);
     if (!sectionEl) {
       setSpeakerSectionOutOfView(false);
       return;
@@ -665,14 +720,17 @@ export function AudioPlayer({
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
+        if (!entry.isIntersecting && Date.now() < jumpSuppressUntilRef.current) {
+          return;
+        }
         setSpeakerSectionOutOfView(!entry.isIntersecting);
       },
-      { threshold: 0.08, rootMargin: '-80px 0px -80px 0px' },
+      { threshold: 0, rootMargin: '-72px 0px -72px 0px' },
     );
 
     observer.observe(sectionEl);
     return () => observer.disconnect();
-  }, [activeSegmentId]);
+  }, [observedSpeakerSegmentId]);
 
   // Smooth scrubber ticker:
   // - When real speech synthesis is speaking, gently interpolates INSIDE the
@@ -962,7 +1020,13 @@ export function AudioPlayer({
   const handleJumpBackToSpeaker = () => {
     if (!activePosition) return;
     playTick();
-    onJumpToSection?.(activePosition.segment.id);
+    jumpSuppressUntilRef.current = Date.now() + 850;
+    setSpeakerSectionOutOfView(false);
+    if (onJumpToSection) {
+      onJumpToSection(activePosition.segment.id);
+    } else {
+      scrollToElementById(activePosition.segment.id);
+    }
   };
 
   // Document-level keyboard shortcuts when player session is active (P2.5)
@@ -1023,8 +1087,18 @@ export function AudioPlayer({
     [timeline, onActiveSectionChange],
   );
 
+  const shouldRenderContextualDocked =
+    variant === 'contextual-floating' &&
+    contextualDisplayMode === 'inline' &&
+    autoFloatOnScroll &&
+    !floatingDismissed &&
+    inlineOutOfView &&
+    (isPlaying || showFloatingDock);
+
   const shouldRenderFloating =
-    !floatingDismissed && (isPlaying || (showFloatingDock && inlineOutOfView));
+    variant === 'contextual-floating'
+      ? contextualDisplayMode === 'floating' || shouldRenderContextualDocked
+      : !floatingDismissed && (isPlaying || (showFloatingDock && inlineOutOfView));
 
   // Notify FloatingBackToTop & ToastViewport so they smoothly clear the active floating dock
   useEffect(() => {
@@ -1045,6 +1119,426 @@ export function AudioPlayer({
     Math.abs(narrationVolume - DEFAULT_SPEECH_TUNING.volume) < 0.01 &&
     !narrationMuted;
 
+  const isJumpOutOfContext =
+    forceOutOfContext !== undefined
+      ? forceOutOfContext
+      : isPlaying && speakerSectionOutOfView;
+
+  if (variant === 'contextual-floating') {
+    const isCompressedDocked = compressed && !manualExpanded;
+
+    const renderPillContent = (isFloatingInstance: boolean) => {
+      const isCompact = isFloatingInstance && isCompressedDocked;
+      const showJumpControl = !isCompact && isJumpOutOfContext;
+
+      return (
+        <div
+          id={!isFloatingInstance && contextualDisplayMode === 'inline' ? anchorId : undefined}
+          role="region"
+          aria-label={`Read aloud player for ${title}`}
+          data-audio-variant="contextual-floating"
+          data-compact={isCompact ? 'true' : 'false'}
+          className={`flex items-center rounded-full border border-[var(--apple-separator)] bg-[var(--apple-surface-elevated)] transition-[padding,box-shadow] duration-[380ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+            isFloatingInstance
+              ? 'apple-ios-bar shadow-[0_8px_28px_-6px_rgba(0,0,0,0.16)] dark:shadow-[0_12px_34px_-6px_rgba(0,0,0,0.72)]'
+              : 'w-full shadow-[0_4px_20px_-4px_rgba(0,0,0,0.06),0_10px_28px_-10px_rgba(0,0,0,0.08)] dark:shadow-[0_10px_30px_-4px_rgba(0,0,0,0.65)]'
+          } ${
+            isCompact
+              ? 'px-2.5 py-2'
+              : 'px-3.5 py-[13px] sm:px-5 sm:py-3.5'
+          }`}
+        >
+          {/* Left: Transport Controls — Skippers collapse smoothly into the Play/Pause anchor */}
+          <div className="flex shrink-0 items-center">
+            <div
+              className={`grid transition-[grid-template-columns] duration-[360ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                isCompact ? 'grid-cols-[0fr]' : 'grid-cols-[1fr]'
+              }`}
+            >
+              <div className="overflow-hidden">
+                <div
+                  className={`pr-1 sm:pr-2 transition-opacity ${
+                    isCompact
+                      ? 'pointer-events-none opacity-0 duration-150 delay-0'
+                      : 'opacity-100 duration-200 delay-100'
+                  }`}
+                >
+                  <button
+                    type="button"
+                    tabIndex={isCompact ? -1 : 0}
+                    onClick={() => handleSkip(-15)}
+                    aria-label="Skip back 15 seconds"
+                    title="Back 15 seconds (J)"
+                    className="relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--apple-label-primary)] transition-colors duration-150 hover:bg-[var(--apple-control-hover)] active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--apple-blue)] sm:h-10 sm:w-10"
+                  >
+                    <SkipBack15Icon size={22} />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleTogglePlay}
+              aria-label={isPlaying ? 'Pause read aloud' : 'Play read aloud'}
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--apple-blue-fill)] text-white transition-[background-color,transform] duration-150 hover:bg-[var(--apple-blue-hover)] active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--apple-blue)]"
+            >
+              {isPlaying ? (
+                <Pause
+                  size={17}
+                  fill="currentColor"
+                  strokeWidth={1.75}
+                  aria-hidden="true"
+                />
+              ) : (
+                <Play
+                  size={17}
+                  fill="currentColor"
+                  strokeWidth={1.75}
+                  aria-hidden="true"
+                  className="translate-x-[1px]"
+                />
+              )}
+            </button>
+
+            <div
+              className={`grid transition-[grid-template-columns] duration-[360ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                isCompact ? 'grid-cols-[0fr]' : 'grid-cols-[1fr]'
+              }`}
+            >
+              <div className="overflow-hidden">
+                <div
+                  className={`pl-1 sm:pl-2 transition-opacity ${
+                    isCompact
+                      ? 'pointer-events-none opacity-0 duration-150 delay-0'
+                      : 'opacity-100 duration-200 delay-100'
+                  }`}
+                >
+                  <button
+                    type="button"
+                    tabIndex={isCompact ? -1 : 0}
+                    onClick={() => handleSkip(15)}
+                    aria-label="Skip forward 15 seconds"
+                    title="Forward 15 seconds (K)"
+                    className="relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--apple-label-primary)] transition-colors duration-150 hover:bg-[var(--apple-control-hover)] active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--apple-blue)] sm:h-10 sm:w-10"
+                  >
+                    <SkipForward15Icon size={22} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Hairline vertical divider — smoothly collapses when compact */}
+          <div
+            aria-hidden="true"
+            className={`hidden sm:grid shrink-0 transition-[grid-template-columns] duration-[360ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+              isCompact ? 'grid-cols-[0fr]' : 'grid-cols-[1fr]'
+            }`}
+          >
+            <div className="overflow-hidden">
+              <div
+                className={`px-3.5 transition-opacity ${
+                  isCompact ? 'opacity-0 duration-100' : 'opacity-100 duration-200 delay-75'
+                }`}
+              >
+                <span className="block h-6 w-px bg-[var(--apple-separator)]" />
+              </div>
+            </div>
+          </div>
+
+          {/* Center: Continuous Title/Timecode + Smoothly Folding Scrubber */}
+          <div
+            onClick={
+              isCompact
+                ? () => {
+                    playTick();
+                    setManualExpanded(true);
+                  }
+                : undefined
+            }
+            role={isCompact ? 'button' : undefined}
+            tabIndex={isCompact ? 0 : undefined}
+            aria-label={isCompact ? 'Expand audio player controls' : undefined}
+            onKeyDown={
+              isCompact
+                ? (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      playTick();
+                      setManualExpanded(true);
+                    }
+                  }
+                : undefined
+            }
+            className={`min-w-0 transition-[width,margin,padding] duration-[380ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+              isFloatingInstance
+                ? isCompact
+                  ? 'mx-2 w-[156px] cursor-pointer rounded-full px-1.5 py-0.5 hover:bg-[var(--apple-control-hover)] sm:w-[186px]'
+                  : 'ml-2 mr-2 w-[min(340px,calc(100vw-250px))] sm:ml-0 sm:mr-4 sm:w-[340px]'
+                : 'ml-2.5 mr-2.5 flex-1 sm:ml-0 sm:mr-4'
+            }`}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex min-w-0 items-center gap-2">
+                <MiniAudioEqualizer
+                  active={isPlaying}
+                  muted={isAudioMutedOrZero}
+                  accentWhenIdle
+                  className="shrink-0"
+                />
+                <span className="truncate text-[13px] font-semibold tracking-[-0.015em] text-[var(--apple-label-primary)] sm:text-[14px]">
+                  {isCompact
+                    ? title
+                    : activePosition
+                      ? `${activePosition.segment.num} · ${activePosition.segment.title}`
+                      : title}
+                </span>
+              </div>
+
+              <span className="flex shrink-0 items-center text-[11.5px] font-normal tabular-nums text-[var(--apple-label-secondary)] sm:text-[12.5px]">
+                <span>{formatAudioTime(displayedTime)}</span>
+                <span
+                  className={`grid transition-[grid-template-columns] duration-[320ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                    isCompact ? 'grid-cols-[0fr]' : 'grid-cols-[1fr]'
+                  }`}
+                >
+                  <span className="overflow-hidden whitespace-nowrap">
+                    <span
+                      className={`inline-block pl-1 transition-opacity ${
+                        isCompact ? 'opacity-0 duration-100' : 'opacity-100 duration-200 delay-75'
+                      }`}
+                    >
+                      / {formatAudioTime(timeline.totalDurationSec)}
+                    </span>
+                  </span>
+                </span>
+              </span>
+            </div>
+
+            {/* Scrubber folds vertically into the pill on collapse */}
+            <div
+              className={`grid transition-[grid-template-rows] duration-[360ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                isCompact ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]'
+              }`}
+            >
+              <div className={isCompact ? 'overflow-hidden' : 'overflow-visible'}>
+                <div
+                  className={`pt-1 transition-opacity ${
+                    isCompact
+                      ? 'pointer-events-none opacity-0 duration-150 delay-0'
+                      : 'opacity-100 duration-200 delay-100'
+                  }`}
+                >
+                  <DraggableAudioScrubber
+                    compact
+                    segmented
+                    timeline={timeline}
+                    currentTime={displayedTime}
+                    progressRatio={progressRatio}
+                    isDragging={isDragging}
+                    onDragStart={() => {
+                      setIsDragging(true);
+                      playTick();
+                    }}
+                    onDragPreview={handleDragPreview}
+                    onDragEnd={(finalSec) => {
+                      setIsDragging(false);
+                      setDragPreviewTime(null);
+                      commitSeek(finalSec, true);
+                    }}
+                    onKeyboardSeek={(nextSec) => {
+                      playTick();
+                      commitSeek(nextSec, true);
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Collapsible Controls Group (Volume · Jump to Speaker · Speed) + Expand/Close */}
+          <div className="flex shrink-0 items-center">
+            <div
+              className={`grid transition-[grid-template-columns] duration-[360ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                isCompact ? 'grid-cols-[0fr]' : 'grid-cols-[1fr]'
+              }`}
+            >
+              <div className={isCompact ? 'overflow-hidden' : 'overflow-visible'}>
+                <div
+                  className={`flex items-center transition-opacity ${
+                    isCompact
+                      ? 'pointer-events-none opacity-0 duration-150 delay-0'
+                      : 'opacity-100 duration-200 delay-100'
+                  }`}
+                >
+                  <InlineVolumeSlider
+                    volume={narrationVolume}
+                    muted={narrationMuted}
+                    onToggleMute={handleToggleNarrationMute}
+                    onVolumeChange={handleVolumeChange}
+                  />
+
+                  {/* Context-Aware Jump to Speaker — smoothly appears only when scrolled away, disappears on click or scroll-back */}
+                  <div
+                    className={`grid transition-[grid-template-columns] duration-[280ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                      showJumpControl ? 'grid-cols-[1fr]' : 'grid-cols-[0fr]'
+                    }`}
+                  >
+                    <div className={showJumpControl ? 'overflow-visible' : 'overflow-hidden'}>
+                      <div
+                        className={`pl-1.5 sm:pl-2 transition-opacity ${
+                          showJumpControl
+                            ? 'opacity-100 duration-200 delay-75'
+                            : 'pointer-events-none opacity-0 duration-100 delay-0'
+                        }`}
+                      >
+                        <AppleTooltip
+                          label="Jump to speaker"
+                          placement="top"
+                          disabled={!showJumpControl}
+                        >
+                          <button
+                            type="button"
+                            tabIndex={showJumpControl ? 0 : -1}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={(e) => {
+                              e.currentTarget.blur();
+                              handleJumpBackToSpeaker();
+                            }}
+                            aria-label="Jump to speaker"
+                            data-context-state={
+                              isJumpOutOfContext ? 'out-of-context' : 'on-track'
+                            }
+                            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--apple-control-tonal)] text-[var(--apple-link)] transition-[background-color,color,transform] duration-150 hover:bg-[var(--apple-control-tonal-hover)] hover:text-[var(--apple-label-primary)] active:scale-[0.94] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--apple-blue)] sm:h-10 sm:w-10"
+                          >
+                            <HandTapIcon size={19} />
+                          </button>
+                        </AppleTooltip>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    tabIndex={isCompact ? -1 : 0}
+                    onClick={handleCycleRate}
+                    aria-label={`Playback speed ${rate}x. Click to change speed`}
+                    className="ml-1.5 inline-flex h-9 w-[56px] shrink-0 items-center justify-center rounded-full bg-[var(--apple-control-tonal)] px-0 text-[12.5px] font-semibold tabular-nums text-[var(--apple-label-primary)] transition-colors duration-150 hover:bg-[var(--apple-control-tonal-hover)] active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--apple-blue)] sm:ml-2 sm:h-10 sm:w-[62px] sm:text-[13.5px]"
+                  >
+                    {rate}×
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Expand / Collapse toggle smoothly glides in when scrolled past Overview */}
+            {isFloatingInstance && (
+              <div
+                className={`grid transition-[grid-template-columns] duration-[320ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                  compressed ? 'grid-cols-[1fr]' : 'grid-cols-[0fr]'
+                }`}
+              >
+                <div className={compressed ? 'overflow-visible' : 'overflow-hidden'}>
+                  <div
+                    className={`pl-1 transition-opacity ${
+                      compressed
+                        ? 'opacity-100 duration-200 delay-75'
+                        : 'pointer-events-none opacity-0 duration-100 delay-0'
+                    }`}
+                  >
+                    <AppleTooltip
+                      label={isCompact ? 'Expand player' : 'Minimize player'}
+                      placement="top"
+                      disabled={!compressed}
+                    >
+                      <button
+                        type="button"
+                        tabIndex={compressed ? 0 : -1}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          playTick();
+                          setManualExpanded((prev) => !prev);
+                        }}
+                        aria-label={isCompact ? 'Expand audio player' : 'Minimize audio player'}
+                        className="apple-btn-icon h-8 w-8 shrink-0 text-[var(--apple-label-tertiary)] hover:text-[var(--apple-label-primary)]"
+                      >
+                        {isCompact ? (
+                          <Maximize2 size={13.5} strokeWidth={1.85} aria-hidden="true" />
+                        ) : (
+                          <Minimize2 size={13.5} strokeWidth={1.85} aria-hidden="true" />
+                        )}
+                      </button>
+                    </AppleTooltip>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {isFloatingInstance && autoFloatOnScroll && (
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  stopSpeech();
+                  setIsPlaying(false);
+                  setFloatingDismissed(true);
+                  onActiveSectionChange?.(null);
+                  playPauseTone();
+                }}
+                aria-label="Close floating audio player"
+                className="apple-btn-icon ml-0.5 h-8 w-8 shrink-0 text-[var(--apple-label-secondary)] hover:text-[var(--apple-label-primary)]"
+              >
+                <X size={14.5} strokeWidth={1.75} aria-hidden="true" />
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    if (contextualDisplayMode === 'inline') {
+      return (
+        <>
+          <div
+            ref={inlineRef}
+            className="w-full scroll-mt-[var(--scroll-offset-header)] print:hidden"
+          >
+            {renderPillContent(false)}
+          </div>
+
+          <AnimatePresence>
+            {shouldRenderContextualDocked && (
+              <motion.aside
+                aria-label="Floating read aloud controls"
+                initial={{ opacity: 0, y: 20, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 16, scale: 0.96 }}
+                transition={{ duration: 0.28, ease: EASE_APPLE }}
+                className={`fixed left-1/2 z-40 w-fit max-w-[calc(100%-1.5rem)] -translate-x-1/2 transition-[bottom] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] print:hidden ${floatingBottomClass}`}
+              >
+                {renderPillContent(true)}
+              </motion.aside>
+            )}
+          </AnimatePresence>
+        </>
+      );
+    }
+
+    return (
+      <motion.aside
+        id={anchorId}
+        aria-label="Contextual floating read aloud player"
+        initial={{ opacity: 0, y: 20, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.28, ease: EASE_APPLE }}
+        className={`fixed left-1/2 z-40 w-[calc(100%-1.5rem)] max-w-[780px] -translate-x-1/2 transition-[bottom] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] print:hidden ${floatingBottomClass}`}
+      >
+        {renderPillContent(true)}
+      </motion.aside>
+    );
+  }
+
   return (
     <>
       {/* Inline Apple News+ / Podcasts Editorial AudioPlayer */}
@@ -1052,24 +1546,11 @@ export function AudioPlayer({
         id={anchorId}
         ref={inlineRef}
         aria-label={`Read aloud player for ${title}`}
-        className="apple-surface-subtle mt-8 scroll-mt-[var(--scroll-offset-header)] rounded-[24px] px-5 py-4.5 sm:px-6 sm:py-5 print:hidden"
+        className="apple-surface-subtle mt-8 scroll-mt-[var(--scroll-offset-header)] rounded-[20px] px-5 py-4.5 sm:px-6 sm:py-5 print:hidden"
       >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          {/* Left: Transport Controls (Play/Pause + 15s Back / Forward) */}
-          <div className="flex items-center gap-2.5">
-            <button
-              type="button"
-              onClick={handleTogglePlay}
-              aria-label={isPlaying ? 'Pause read aloud' : 'Play read aloud'}
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--apple-blue-fill)] text-white shadow-[0_4px_12px_-2px_rgba(0,113,227,0.42)] transition-all duration-200 hover:bg-[var(--apple-blue-hover)] active:scale-[0.95]"
-            >
-              {isPlaying ? (
-                <SFPauseFill size={17} />
-              ) : (
-                <SFPlayFill size={17} className="translate-x-[1px]" />
-              )}
-            </button>
-
+          {/* Left: Transport Controls (15s Back / Play-Pause / 15s Forward) */}
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => handleSkip(-15)}
@@ -1077,7 +1558,20 @@ export function AudioPlayer({
               title="Back 15 seconds (J)"
               className="apple-btn-icon h-11 w-11 shrink-0 text-[var(--apple-label-primary)] sm:h-10 sm:w-10"
             >
-              <SFGoBackward15 size={22} />
+              <SkipBack15Icon size={22} />
+            </button>
+
+            <button
+              type="button"
+              onClick={handleTogglePlay}
+              aria-label={isPlaying ? 'Pause read aloud' : 'Play read aloud'}
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--apple-blue-fill)] text-white transition-all duration-200 hover:bg-[var(--apple-blue-hover)] active:scale-[0.95]"
+            >
+              {isPlaying ? (
+                <Pause size={17} fill="currentColor" strokeWidth={1.75} aria-hidden="true" />
+              ) : (
+                <Play size={17} fill="currentColor" strokeWidth={1.75} aria-hidden="true" className="translate-x-[1px]" />
+              )}
             </button>
 
             <button
@@ -1087,7 +1581,7 @@ export function AudioPlayer({
               title="Forward 15 seconds (K)"
               className="apple-btn-icon h-11 w-11 shrink-0 text-[var(--apple-label-primary)] sm:h-10 sm:w-10"
             >
-              <SFGoForward15 size={22} />
+              <SkipForward15Icon size={22} />
             </button>
 
             <div className="ml-1.5 min-w-0">
@@ -1095,7 +1589,7 @@ export function AudioPlayer({
                 {isPlaying ? (
                   <MiniAudioEqualizer active={isPlaying} muted={isAudioMutedOrZero} />
                 ) : (
-                  <SFHeadphones size={14} className="shrink-0" />
+                  <Headphones size={14} strokeWidth={1.75} aria-hidden="true" className="shrink-0" />
                 )}
                 <span className="truncate">
                   {isPlaying ? 'Listening now' : idleLabel}
@@ -1134,11 +1628,16 @@ export function AudioPlayer({
                 }
                 className="apple-btn-icon h-11 w-11 bg-[var(--apple-control-tonal)] text-[var(--apple-label-primary)] hover:bg-[var(--apple-control-tonal-hover)] sm:h-8 sm:w-8"
               >
-                {isAudioMutedOrZero ? (
-                  <SFSpeakerSlash size={14} className="text-[var(--apple-label-tertiary)]" />
-                ) : (
-                  <SFSpeakerWave size={14} className="text-[var(--apple-label-primary)]" />
-                )}
+                <AnimatedMuteIcon
+                  muted={isAudioMutedOrZero}
+                  size={15}
+                  strokeWidth={1.85}
+                  className={
+                    isAudioMutedOrZero
+                      ? 'text-[var(--apple-label-tertiary)]'
+                      : 'text-[var(--apple-label-primary)]'
+                  }
+                />
               </button>
 
               <label className="sr-only" htmlFor={`${dockId}-volume`}>
@@ -1160,7 +1659,7 @@ export function AudioPlayer({
                 type="button"
                 onClick={handleCycleRate}
                 aria-label={`Playback speed ${rate}x. Click to change speed`}
-                className="type-caption inline-flex h-11 min-w-[48px] shrink-0 items-center justify-center rounded-full bg-[var(--apple-control-tonal)] px-3 tabular-nums text-[var(--apple-label-primary)] transition-all duration-150 hover:bg-[var(--apple-control-tonal-hover)] active:scale-[0.96] sm:h-8 sm:min-w-[46px]"
+                className="type-caption inline-flex h-11 w-[54px] shrink-0 items-center justify-center rounded-full bg-[var(--apple-control-tonal)] px-0 tabular-nums text-[var(--apple-label-primary)] transition-colors duration-150 hover:bg-[var(--apple-control-tonal-hover)] active:scale-[0.96] sm:h-8 sm:w-[52px]"
               >
                 {rate}×
               </button>
@@ -1208,12 +1707,8 @@ export function AudioPlayer({
             />
           </div>
 
-          {/* Secondary Row: Helper, Voice Selection, Voice Tuning Popover & Jump Back to Speaker */}
-          <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <p className="type-footnote font-normal text-[var(--apple-label-tertiary)]">
-              {helperText}
-            </p>
-
+          {/* Secondary Row: Voice Selection, Voice Tuning Popover & Jump Back to Speaker */}
+          <div className="mt-2.5 flex flex-wrap items-center justify-end gap-2">
             <div className="flex flex-wrap items-center gap-2">
               {isPlaying && speakerSectionOutOfView && activePosition && (
                 <button
@@ -1221,7 +1716,7 @@ export function AudioPlayer({
                   onClick={handleJumpBackToSpeaker}
                   className="type-caption inline-flex min-h-[32px] items-center gap-1.5 rounded-full bg-[var(--apple-blue)]/10 px-3 py-1 font-medium text-[var(--apple-link)] transition-colors hover:bg-[var(--apple-blue)]/15"
                 >
-                  <SFWaveform size={12} />
+                  <AudioLines size={12} strokeWidth={2} aria-hidden="true" />
                   <span>Jump back to speaker</span>
                 </button>
               )}
@@ -1251,8 +1746,10 @@ export function AudioPlayer({
                       </option>
                     ))}
                   </select>
-                  <SFChevronDown
-                    size={11}
+                  <ChevronDown
+                    size={12}
+                    strokeWidth={2}
+                    aria-hidden="true"
                     className="pointer-events-none absolute right-2.5 text-[var(--apple-label-tertiary)]"
                   />
                 </div>
@@ -1275,7 +1772,7 @@ export function AudioPlayer({
                       : 'bg-[var(--apple-control-tonal)] text-[var(--apple-label-secondary)] hover:bg-[var(--apple-control-tonal-hover)] hover:text-[var(--apple-label-primary)]'
                   }`}
                 >
-                  <SFSliders size={12} />
+                  <SlidersHorizontal size={12} strokeWidth={2} aria-hidden="true" />
                   <span>Voice Tuning</span>
                 </button>
 
@@ -1307,7 +1804,7 @@ export function AudioPlayer({
                             onClick={handleResetTuning}
                             className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium text-[var(--apple-link)] transition-colors hover:bg-[var(--apple-blue)]/10"
                           >
-                            <SFReset size={11} />
+                            <RotateCcw size={12} strokeWidth={2} aria-hidden="true" />
                             <span>Reset</span>
                           </button>
                         )}
@@ -1326,7 +1823,7 @@ export function AudioPlayer({
                         <div
                           role="group"
                           aria-label="Playback speed"
-                          className="mt-2 grid grid-cols-5 gap-1 rounded-[12px] bg-[var(--apple-control-tonal)] p-1"
+                          className="mt-2 grid grid-cols-4 gap-1 rounded-[12px] bg-[var(--apple-control-tonal)] p-1"
                         >
                           {PLAYBACK_RATES.map((r, idx) => {
                             const selected = idx === rateIndex;
@@ -1446,7 +1943,7 @@ export function AudioPlayer({
             transition={{ duration: 0.34, ease: EASE_APPLE }}
             className={`fixed left-1/2 z-40 w-[calc(100%-1.5rem)] max-w-[680px] -translate-x-1/2 transition-[bottom] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] print:hidden ${floatingBottomClass}`}
           >
-            <div className="apple-ios-bar rounded-[24px] px-4 py-3 sm:px-5 sm:py-3.5">
+            <div className="apple-ios-bar rounded-[20px] px-4 py-3 sm:px-5 sm:py-3.5">
               {/* Jump Back to Speaker strip when user scrolls away from active chapter */}
               {isPlaying && speakerSectionOutOfView && activePosition && (
                 <div className="mb-2 flex items-center justify-between gap-2 border-b border-[var(--apple-separator-subtle)] pb-2">
@@ -1478,19 +1975,19 @@ export function AudioPlayer({
                     aria-label="Skip back 15 seconds"
                     className="apple-btn-icon h-11 w-11 text-[var(--apple-label-primary)] sm:h-9 sm:w-9"
                   >
-                    <SFGoBackward15 size={20} />
+                    <SkipBack15Icon size={19} />
                   </button>
 
                   <button
                     type="button"
                     onClick={handleTogglePlay}
                     aria-label={isPlaying ? 'Pause read aloud' : 'Resume read aloud'}
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--apple-blue-fill)] text-white shadow-[0_3px_10px_-2px_rgba(0,113,227,0.45)] transition-all hover:bg-[var(--apple-blue-hover)] active:scale-95 sm:h-10 sm:w-10"
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--apple-blue-fill)] text-white transition-all hover:bg-[var(--apple-blue-hover)] active:scale-95 sm:h-10 sm:w-10"
                   >
                     {isPlaying ? (
-                      <SFPauseFill size={16} />
+                      <Pause size={16} fill="currentColor" strokeWidth={1.75} aria-hidden="true" />
                     ) : (
-                      <SFPlayFill size={16} className="translate-x-[1px]" />
+                      <Play size={16} fill="currentColor" strokeWidth={1.75} aria-hidden="true" className="translate-x-[1px]" />
                     )}
                   </button>
 
@@ -1500,7 +1997,7 @@ export function AudioPlayer({
                     aria-label="Skip forward 15 seconds"
                     className="apple-btn-icon h-11 w-11 text-[var(--apple-label-primary)] sm:h-9 sm:w-9"
                   >
-                    <SFGoForward15 size={20} />
+                    <SkipForward15Icon size={19} />
                   </button>
                 </div>
 
@@ -1565,17 +2062,22 @@ export function AudioPlayer({
                     }
                     className="apple-btn-icon h-11 w-11 text-[var(--apple-label-secondary)] hover:text-[var(--apple-label-primary)] sm:h-8 sm:w-8"
                   >
-                    {isAudioMutedOrZero ? (
-                      <SFSpeakerSlash size={14} className="text-[var(--apple-label-tertiary)]" />
-                    ) : (
-                      <SFSpeakerWave size={14} className="text-[var(--apple-label-primary)]" />
-                    )}
+                    <AnimatedMuteIcon
+                      muted={isAudioMutedOrZero}
+                      size={15}
+                      strokeWidth={1.85}
+                      className={
+                        isAudioMutedOrZero
+                          ? 'text-[var(--apple-label-tertiary)]'
+                          : 'text-[var(--apple-label-primary)]'
+                      }
+                    />
                   </button>
                   <button
                     type="button"
                     onClick={handleCycleRate}
                     aria-label={`Playback speed ${rate}x`}
-                    className="type-caption hidden h-8 min-w-[40px] items-center justify-center rounded-full bg-[var(--apple-control-tonal)] px-2.5 tabular-nums text-[var(--apple-label-primary)] transition-all hover:bg-[var(--apple-control-tonal-hover)] active:scale-95 sm:inline-flex"
+                    className="type-caption hidden h-8 w-[48px] shrink-0 items-center justify-center rounded-full bg-[var(--apple-control-tonal)] px-0 tabular-nums text-[var(--apple-label-primary)] transition-colors hover:bg-[var(--apple-control-tonal-hover)] active:scale-95 sm:inline-flex"
                   >
                     {rate}×
                   </button>
@@ -1591,7 +2093,7 @@ export function AudioPlayer({
                     aria-label="Close floating audio player"
                     className="apple-btn-icon h-11 w-11 text-[var(--apple-label-secondary)] hover:text-[var(--apple-label-primary)] sm:h-8 sm:w-8"
                   >
-                    <SFXmark size={14} />
+                    <X size={14} strokeWidth={1.75} aria-hidden="true" />
                   </button>
                 </div>
               </div>
@@ -1609,6 +2111,7 @@ interface DraggableAudioScrubberProps {
   progressRatio: number;
   isDragging: boolean;
   compact?: boolean;
+  segmented?: boolean;
   onDragStart: () => void;
   onDragPreview: (timeSec: number) => void;
   onDragEnd: (timeSec: number) => void;
@@ -1621,6 +2124,7 @@ function DraggableAudioScrubber({
   progressRatio,
   isDragging,
   compact = false,
+  segmented = false,
   onDragStart,
   onDragPreview,
   onDragEnd,
@@ -1708,8 +2212,8 @@ function DraggableAudioScrubber({
       onPointerUp={handlePointerUp}
       onPointerLeave={() => setHoveredTime(null)}
       onKeyDown={handleKeyDown}
-      className={`group relative flex touch-none select-none cursor-pointer items-center ${
-        compact ? 'h-9 sm:h-6' : 'h-11 sm:h-7'
+      className={`group relative flex touch-none select-none cursor-pointer items-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--apple-blue)] ${
+        compact ? 'h-8 sm:h-5' : 'h-11 sm:h-7'
       }`}
     >
       {/* Floating Apple Scrub Popover on Hover / Drag */}
@@ -1729,47 +2233,271 @@ function DraggableAudioScrubber({
         </div>
       )}
 
-      {/* Rail Track */}
-      <div
-        className={`relative w-full overflow-hidden rounded-full bg-[var(--apple-separator)] transition-all duration-150 ${
-          isDragging
-            ? 'h-[7px]'
-            : compact
-              ? 'h-[4px] group-hover:h-[6px]'
-              : 'h-[5px] group-hover:h-[7px]'
-        }`}
-      >
-        {/* Elapsed Fill */}
-        <div
-          style={{ width: `${progressRatio * 100}%` }}
-          className="h-full rounded-full bg-[var(--apple-blue)]"
-        />
+      {/* Rail Track: Segmented chapter boundaries or continuous detent track */}
+      {segmented ? (
+        <div className="relative flex w-full items-center gap-[3px]">
+          {timeline.segments.map((seg) => {
+            const segDuration = Math.max(0.01, seg.endSec - seg.startSec);
+            const segWeight =
+              timeline.totalDurationSec > 0
+                ? Math.max(0.04, segDuration / timeline.totalDurationSec)
+                : 1;
+            const fillPct =
+              currentTime >= seg.endSec
+                ? 100
+                : currentTime <= seg.startSec
+                  ? 0
+                  : ((currentTime - seg.startSec) / segDuration) * 100;
 
-        {/* Chapter Detent Ticks */}
-        {timeline.segments.slice(1).map((seg) => {
-          const pct =
-            timeline.totalDurationSec > 0
-              ? (seg.startSec / timeline.totalDurationSec) * 100
-              : 0;
-          return (
-            <span
-              key={seg.id}
-              aria-hidden="true"
-              style={{ left: `${pct}%` }}
-              className="absolute top-0 h-full w-[2px] -translate-x-1/2 bg-[var(--apple-surface-elevated)] opacity-85"
-            />
-          );
-        })}
-      </div>
+            return (
+              <div
+                key={seg.id}
+                data-chapter-segment={seg.id}
+                style={{ flexGrow: segWeight, flexBasis: 0 }}
+                className={`relative overflow-hidden rounded-full bg-[#D5D7DC] transition-[height] duration-150 dark:bg-white/18 ${
+                  isDragging
+                    ? 'h-[6px]'
+                    : 'h-[4px] group-hover:h-[5px]'
+                }`}
+              >
+                <div
+                  style={{ width: `${fillPct}%` }}
+                  className="h-full rounded-full bg-[var(--apple-blue)]"
+                />
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div
+          className={`relative w-full overflow-hidden rounded-full bg-[var(--apple-separator)] transition-all duration-150 ${
+            isDragging
+              ? 'h-[7px]'
+              : compact
+                ? 'h-[4px] group-hover:h-[6px]'
+                : 'h-[5px] group-hover:h-[7px]'
+          }`}
+        >
+          {/* Elapsed Fill */}
+          <div
+            style={{ width: `${progressRatio * 100}%` }}
+            className="h-full rounded-full bg-[var(--apple-blue)]"
+          />
+
+          {/* Chapter Detent Ticks */}
+          {timeline.segments.slice(1).map((seg) => {
+            const pct =
+              timeline.totalDurationSec > 0
+                ? (seg.startSec / timeline.totalDurationSec) * 100
+                : 0;
+            return (
+              <span
+                key={seg.id}
+                aria-hidden="true"
+                style={{ left: `${pct}%` }}
+                className="absolute top-0 h-full w-[2px] -translate-x-1/2 bg-[var(--apple-surface-elevated)] opacity-85"
+              />
+            );
+          })}
+        </div>
+      )}
 
       {/* Physical Circular Apple Scrubber Thumb */}
       <span
         aria-hidden="true"
         style={{ left: `${progressRatio * 100}%` }}
-        className={`apple-pill-shadow pointer-events-none absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[var(--apple-separator)] bg-[var(--apple-surface-elevated)] transition-transform duration-150 ${
+        className={`apple-pill-shadow pointer-events-none absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[var(--apple-separator-strong)] bg-[var(--apple-surface-elevated)] transition-transform duration-150 ${
           compact ? 'h-3.5 w-3.5' : 'h-4 w-4'
         } ${isDragging ? 'scale-125 ring-4 ring-[var(--apple-focus-ring)]' : 'group-hover:scale-110'}`}
       />
+    </div>
+  );
+}
+
+interface InlineVolumeSliderProps {
+  volume: number;
+  muted: boolean;
+  onToggleMute: () => void;
+  onVolumeChange: (nextVol: number) => void;
+}
+
+/**
+ * Polished hover-expandable horizontal narration volume pill.
+ * Uses CSS Grid column easing (0fr -> 1fr), opacity lead-out on collapse to
+ * eliminate overflow flicker, a 140ms hover-out grace period, and pointer
+ * capture so dragging outside the pill never snaps it closed mid-gesture.
+ */
+function InlineVolumeSlider({
+  volume,
+  muted,
+  onToggleMute,
+  onVolumeChange,
+}: InlineVolumeSliderProps) {
+  const [hovered, setHovered] = useState(false);
+  const [focusWithin, setFocusWithin] = useState(false);
+  const [isDraggingVol, setIsDraggingVol] = useState(false);
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
+
+  const effectiveVolume = muted ? 0 : Math.min(1, Math.max(0, volume));
+  const pct = Math.round(effectiveVolume * 100);
+  const isExpanded = hovered || focusWithin || isDraggingVol;
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current !== null) {
+        window.clearTimeout(closeTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleMouseEnter = () => {
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    setHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+    }
+    closeTimerRef.current = window.setTimeout(() => {
+      setHovered(false);
+      closeTimerRef.current = null;
+    }, 140);
+  };
+
+  const clientXToVolume = useCallback((clientX: number) => {
+    const rect = trackRef.current?.getBoundingClientRect();
+    if (!rect || rect.width <= 0) return effectiveVolume;
+    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+    return Math.round(ratio * 20) / 20;
+  }, [effectiveVolume]);
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setIsDraggingVol(true);
+    playTick();
+    onVolumeChange(clientXToVolume(event.clientX));
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDraggingVol) return;
+    onVolumeChange(clientXToVolume(event.clientX));
+  };
+
+  const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDraggingVol) return;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    onVolumeChange(clientXToVolume(event.clientX));
+    setIsDraggingVol(false);
+  };
+
+  const handleSliderKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'ArrowRight' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      onVolumeChange(Math.min(1, effectiveVolume + 0.05));
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      onVolumeChange(Math.max(0, effectiveVolume - 0.05));
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      onVolumeChange(0);
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      onVolumeChange(1);
+    }
+  };
+
+  return (
+    <div
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onFocus={() => setFocusWithin(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+          setFocusWithin(false);
+        }
+      }}
+      className="hidden h-9 items-center rounded-full bg-[var(--apple-control-tonal)] transition-colors duration-200 hover:bg-[var(--apple-control-tonal-hover)] sm:inline-flex sm:h-10"
+    >
+      <button
+        type="button"
+        onClick={() => {
+          playTick();
+          onToggleMute();
+        }}
+        aria-pressed={effectiveVolume === 0}
+        aria-label={effectiveVolume === 0 ? 'Unmute narration' : 'Mute narration'}
+        title={effectiveVolume === 0 ? 'Unmute narration' : `Narration volume ${pct}%`}
+        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--apple-label-secondary)] transition-colors duration-150 hover:text-[var(--apple-label-primary)] active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--apple-blue)] sm:h-10 sm:w-10"
+      >
+        <AnimatedMuteIcon
+          muted={effectiveVolume === 0}
+          size={17}
+          strokeWidth={1.85}
+          className={
+            effectiveVolume === 0 ? 'text-[var(--apple-label-tertiary)]' : ''
+          }
+        />
+      </button>
+
+      <div
+        className={`grid transition-[grid-template-columns] duration-[280ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          isExpanded ? 'grid-cols-[1fr]' : 'grid-cols-[0fr]'
+        }`}
+      >
+        <div className="overflow-hidden">
+          <div
+            className={`flex items-center pl-2 pr-4 transition-opacity ${
+              isExpanded
+                ? 'opacity-100 duration-200 delay-75'
+                : 'pointer-events-none opacity-0 duration-100 delay-0'
+            }`}
+          >
+            <div
+              ref={trackRef}
+              role="slider"
+              tabIndex={isExpanded ? 0 : -1}
+              aria-label="Narration volume"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={pct}
+              aria-valuetext={`${pct}%`}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={() => setIsDraggingVol(false)}
+              onKeyDown={handleSliderKeyDown}
+              className="group relative flex h-7 w-[72px] cursor-pointer touch-none select-none items-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--apple-blue)]"
+            >
+              <div
+                className={`relative w-full overflow-hidden rounded-full bg-[var(--apple-separator-strong)]/45 transition-[height] duration-150 ${
+                  isDraggingVol ? 'h-[5px]' : 'h-[4px] group-hover:h-[5px]'
+                }`}
+              >
+                <div
+                  style={{ width: `${pct}%` }}
+                  className="h-full rounded-full bg-[var(--apple-blue)]"
+                />
+              </div>
+
+              <span
+                aria-hidden="true"
+                style={{ left: `${pct}%` }}
+                className={`apple-pill-shadow pointer-events-none absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[var(--apple-separator-strong)] bg-[var(--apple-surface-elevated)] transition-transform duration-150 ${
+                  isDraggingVol ? 'scale-125' : 'group-hover:scale-110'
+                }`}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

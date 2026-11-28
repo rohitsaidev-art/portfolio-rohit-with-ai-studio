@@ -1,12 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { SITE_CONFIG } from '../data/site';
-import {
-  SFArrowUpRight,
-  SFCheckmark,
-  SFChevronDown,
-  SFDocOnDoc,
-} from '../components/SFSymbols';
+import { ArrowUpRight, ChevronDown, Copy } from 'lucide-react';
+import { AnimatedCheckIcon, AnimatedSendIcon } from '../components/icons/AnimatedLucide';
 import {
   validateContactForm,
   type ContactFormValues,
@@ -116,12 +112,8 @@ export function ContactPage() {
 
   return (
     <div className="bg-[var(--apple-bg-secondary)]">
-      <section className="mx-auto max-w-[1160px] px-5 pb-28 pt-16 sm:px-8 sm:pt-24">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.48, ease: EASE_APPLE }}
-        >
+      <section className="mx-auto max-w-[1160px] px-5 pb-28 pt-12 sm:px-8 sm:pt-16">
+        <div>
           <p className="type-eyebrow text-[var(--apple-link)]">
             Contact
           </p>
@@ -131,7 +123,7 @@ export function ContactPage() {
           <p className="type-lead measure-lead mt-5">
             Share a few lines about the product, timeline, or question on your mind. {SITE_CONFIG.responseTime}
           </p>
-        </motion.div>
+        </div>
 
         <div className="mt-14 grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10">
           {/* Elevated Inquiry Sheet */}
@@ -141,10 +133,10 @@ export function ContactPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.36, ease: EASE_APPLE }}
-                className="apple-card-static rounded-[28px] p-8 sm:p-10"
+                className="apple-card-static rounded-[20px] p-8 sm:p-10"
               >
                 <div className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--apple-blue)]/10 text-[var(--apple-blue)]">
-                  <SFCheckmark size={20} />
+                  <AnimatedCheckIcon size={20} />
                 </div>
 
                 <h2
@@ -181,7 +173,7 @@ export function ContactPage() {
                     className="apple-btn-primary"
                   >
                     <span>Open in Mail</span>
-                    <SFArrowUpRight size={15} />
+                    <ArrowUpRight size={15} strokeWidth={1.75} aria-hidden="true" />
                   </a>
                   <button
                     type="button"
@@ -199,7 +191,7 @@ export function ContactPage() {
               <form
                 onSubmit={handleSubmit}
                 noValidate
-                className="apple-card-static rounded-[28px] p-7 sm:p-9"
+                className="apple-card-static rounded-[20px] p-7 sm:p-9"
               >
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                   <div>
@@ -293,7 +285,7 @@ export function ContactPage() {
                           }}
                           className={`apple-segmented-item min-h-[44px] sm:min-h-[38px] px-4 py-1.5 text-[13.5px] ${
                             active
-                              ? 'bg-[var(--apple-blue-fill)] text-white'
+                              ? 'bg-[var(--editorial-btn-bg)] text-[var(--editorial-btn-fg)]'
                               : 'bg-[var(--apple-bg-secondary)] text-[var(--apple-label-secondary)] hover:bg-[var(--apple-control-tonal)] hover:text-[var(--apple-label-primary)]'
                           }`}
                         >
@@ -331,8 +323,10 @@ export function ContactPage() {
                       <option value="Next 1–3 months">Next 1–3 months</option>
                       <option value="Q2 2027 or later">Q2 2027 or later</option>
                     </select>
-                    <SFChevronDown
+                    <ChevronDown
                       size={15}
+                      strokeWidth={1.75}
+                      aria-hidden="true"
                       className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--apple-label-secondary)]"
                     />
                   </div>
@@ -378,8 +372,10 @@ export function ContactPage() {
                     data-loading={isSubmitting ? 'true' : undefined}
                     className="apple-btn-primary"
                   >
-                    {isSubmitting && (
+                    {isSubmitting ? (
                       <span className="apple-spinner" aria-hidden="true" />
+                    ) : (
+                      <AnimatedSendIcon size={15} />
                     )}
                     <span>{isSubmitting ? 'Preparing inquiry…' : 'Send inquiry'}</span>
                   </button>
@@ -391,9 +387,9 @@ export function ContactPage() {
             )}
           </div>
 
-          {/* Elevated Direct Contact Cards */}
-          <aside className="space-y-5 lg:col-span-5">
-            <div className="apple-surface-subtle rounded-[26px] p-7">
+          {/* Open Hairline-Divided Direct Contact Details */}
+          <aside className="divide-y divide-[var(--apple-separator)] border-t border-[var(--apple-separator)] lg:col-span-5">
+            <div className="py-7">
               <p className="type-caption text-[var(--apple-label-tertiary)]">Direct email</p>
               <a
                 href={`mailto:${SITE_CONFIG.email}`}
@@ -408,22 +404,26 @@ export function ContactPage() {
               >
                 {copied ? (
                   <>
-                    <SFCheckmark size={14} className="text-[var(--apple-blue)]" />
+                    <AnimatedCheckIcon size={14} className="text-[var(--apple-blue)]" />
                     <span>Copied to clipboard</span>
                   </>
                 ) : (
                   <>
-                    <SFDocOnDoc size={14} className="text-[var(--apple-label-secondary)]" />
+                    <Copy size={14} strokeWidth={1.75} className="text-[var(--apple-label-secondary)]" aria-hidden="true" />
                     <span>Copy email address</span>
                   </>
                 )}
               </button>
             </div>
 
-            <div className="apple-surface-subtle rounded-[26px] p-7">
+            <div className="py-7">
               <p className="type-caption text-[var(--apple-label-tertiary)]">Availability</p>
-              <p className="type-headline font-display mt-2 text-[19px]">
-                {SITE_CONFIG.availabilityShort}
+              <p className="type-headline font-display mt-2 inline-flex items-center gap-2 text-[19px]">
+                <span
+                  className="h-2 w-2 shrink-0 rounded-full bg-[var(--editorial-accent-warm)]"
+                  aria-hidden="true"
+                />
+                <span>{SITE_CONFIG.availabilityShort}</span>
               </p>
               <p className="type-callout mt-2">
                 {SITE_CONFIG.availabilityFull}
@@ -434,7 +434,7 @@ export function ContactPage() {
               <LocalTimeClock variant="card" />
             </div>
 
-            <div className="apple-surface-subtle rounded-[26px] p-7">
+            <div className="py-7">
               <p className="type-caption text-[var(--apple-label-tertiary)]">Elsewhere</p>
               <ul className="mt-4 space-y-3">
                 {SITE_CONFIG.socials.map((social) => (
@@ -448,7 +448,7 @@ export function ContactPage() {
                       <span className="font-medium text-[var(--apple-label-primary)]">{social.label}</span>
                       <span className="inline-flex items-center gap-1 text-[13.5px] text-[var(--apple-label-tertiary)] group-hover:text-[var(--apple-link)]">
                         <span>{social.handle}</span>
-                        <SFArrowUpRight size={14} />
+                        <ArrowUpRight size={14} strokeWidth={1.75} aria-hidden="true" />
                       </span>
                     </a>
                   </li>

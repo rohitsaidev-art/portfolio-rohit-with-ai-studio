@@ -12,14 +12,9 @@ import { useSoundEnabled } from '../utils/useSoundEnabled';
 import { showToast } from '../utils/toast';
 import { EASE_APPLE } from '../utils/motion';
 import { prefersReducedMotion } from '../utils/scroll';
-import {
-  SFDisplay,
-  SFMoon,
-  SFSliders,
-  SFSpeakerSlash,
-  SFSpeakerWave,
-  SFSunMax,
-} from './SFSymbols';
+import { Monitor, Moon, Sun } from 'lucide-react';
+import { AnimatedSettingsIcon } from './icons/AnimatedLucide';
+import { AnimatedMuteIcon } from './icons/MuteToggle';
 
 interface GlobalPreferencesPopoverProps {
   /** Popover placement direction relative to trigger button */
@@ -31,11 +26,11 @@ interface GlobalPreferencesPopoverProps {
 const APPEARANCE_OPTIONS: readonly {
   id: AppearanceMode;
   label: string;
-  icon: typeof SFSunMax;
+  icon: typeof Sun;
 }[] = [
-  { id: 'light', label: 'Light', icon: SFSunMax },
-  { id: 'system', label: 'Auto', icon: SFDisplay },
-  { id: 'dark', label: 'Dark', icon: SFMoon },
+  { id: 'light', label: 'Light', icon: Sun },
+  { id: 'system', label: 'Auto', icon: Monitor },
+  { id: 'dark', label: 'Dark', icon: Moon },
 ];
 
 /**
@@ -127,13 +122,17 @@ export function GlobalPreferencesPopover({
         title="Preferences (Appearance, UI Sound, Reader Comfort)"
         className={
           variant === 'pill'
-            ? 'apple-surface-subtle type-caption inline-flex min-h-[44px] items-center gap-1.5 rounded-full px-4 py-1 font-medium text-[var(--apple-label-primary)] transition-all duration-150 hover:opacity-90 active:scale-95 sm:min-h-[34px] sm:px-3.5'
+            ? 'apple-surface-subtle type-caption inline-flex min-h-[44px] items-center gap-1.5 rounded-full px-4 py-1 font-medium text-[var(--apple-label-primary)] transition-[opacity,transform] duration-150 hover:opacity-90 active:scale-95 sm:min-h-[34px] sm:px-3.5'
             : `apple-btn-icon h-11 w-11 text-[var(--apple-label-secondary)] hover:text-[var(--apple-label-primary)] md:h-8 md:w-8 ${
                 open ? 'bg-[var(--apple-control-hover)] text-[var(--apple-label-primary)]' : ''
               }`
         }
       >
-        <SFSliders size={variant === 'pill' ? 13 : 15} />
+        <AnimatedSettingsIcon
+          size={variant === 'pill' ? 13 : 15}
+          strokeWidth={variant === 'pill' ? 2 : 1.75}
+          active={open}
+        />
         {variant === 'pill' && <span>Preferences</span>}
       </button>
 
@@ -157,7 +156,7 @@ export function GlobalPreferencesPopover({
             transition={
               reduced ? { duration: 0.01 } : { duration: 0.18, ease: EASE_APPLE }
             }
-            className={`apple-modal absolute z-50 w-[292px] rounded-[22px] bg-[var(--apple-surface-elevated)] p-4.5 text-left ${panelPositionClass}`}
+            className={`apple-modal absolute z-50 w-[292px] rounded-[20px] bg-[var(--apple-surface-elevated)] p-4.5 text-left ${panelPositionClass}`}
           >
             <div className="flex items-center justify-between">
               <p className="type-caption text-[var(--apple-label-tertiary)]">
@@ -193,7 +192,7 @@ export function GlobalPreferencesPopover({
                           : 'text-[var(--apple-label-secondary)] hover:text-[var(--apple-label-primary)]'
                       }`}
                     >
-                      <Icon size={12} />
+                      <Icon size={12} strokeWidth={2} aria-hidden="true" />
                       <span>{option.label}</span>
                     </button>
                   );
@@ -205,14 +204,16 @@ export function GlobalPreferencesPopover({
             <div className="mt-4 flex items-center justify-between gap-3 border-t border-[var(--apple-separator-subtle)] pt-3.5">
               <div className="min-w-0">
                 <p className="type-footnote flex items-center gap-1.5 font-medium text-[var(--apple-label-primary)]">
-                  {soundEnabled ? (
-                    <SFSpeakerWave size={13} className="text-[var(--apple-blue)]" />
-                  ) : (
-                    <SFSpeakerSlash
-                      size={13}
-                      className="text-[var(--apple-label-tertiary)]"
-                    />
-                  )}
+                  <AnimatedMuteIcon
+                    muted={!soundEnabled}
+                    size={14.5}
+                    strokeWidth={1.9}
+                    className={
+                      soundEnabled
+                        ? 'text-[var(--apple-blue)]'
+                        : 'text-[var(--apple-label-tertiary)]'
+                    }
+                  />
                   <span>UI Sound Effects</span>
                 </p>
                 <p className="mt-0.5 text-[11.5px] leading-[1.35] text-[var(--apple-label-tertiary)]">

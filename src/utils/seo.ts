@@ -211,10 +211,52 @@ export function resolveRouteSeo(options: {
     };
   }
 
-  // 7. Home / Selected Work — WebSite + Person JSON-LD
+  // 7. Work Index — CollectionPage JSON-LD
+  if (route.page === 'work') {
+    const path = '/work';
+    const canonicalUrl = buildAbsoluteUrl(origin, path);
+    return {
+      title: `Work & Case Studies — ${SITE_CONFIG.name}`,
+      description:
+        'Complete archive of product design, interaction systems, and web engineering case studies.',
+      canonicalPath: path,
+      canonicalUrl,
+      robots: 'index, follow',
+      ogType: 'website',
+      ogImage: buildAbsoluteUrl(origin, DEFAULT_OG_IMAGE_PATH),
+      jsonLd: {
+        '@context': 'https://schema.org',
+        '@type': 'CollectionPage',
+        name: `Work — ${SITE_CONFIG.name}`,
+        url: canonicalUrl,
+        description:
+          'Selected and archived UX, product design, and interactive engineering case studies.',
+        author: buildPersonSchema(origin),
+      },
+    };
+  }
+
+  // 7b. FlexCarousel Playground — noindex interactive settings lab
+  if (route.page === 'flex-carousel') {
+    const path = '/flex-carousel';
+    const canonicalUrl = buildAbsoluteUrl(origin, path);
+    return {
+      title: `FlexCarousel Playground — ${SITE_CONFIG.name}`,
+      description:
+        'Interactive FlexCarousel sandbox for tuning case study card liquid-glass settings.',
+      canonicalPath: path,
+      canonicalUrl,
+      robots: 'noindex, nofollow',
+      ogType: 'website',
+      ogImage: buildAbsoluteUrl(origin, DEFAULT_OG_IMAGE_PATH),
+      jsonLd: null,
+    };
+  }
+
+  // 8. Home — WebSite + Person JSON-LD
   const canonicalUrl = buildAbsoluteUrl(origin, '/');
   return {
-    title: `${SITE_CONFIG.name} — UX & Product Designer`,
+    title: `${SITE_CONFIG.name} — ${SITE_CONFIG.roleTitle}`,
     description:
       'Independent UX and product designer crafting clear interfaces, resilient design systems, and tactile interactive web experiences.',
     canonicalPath: '/',

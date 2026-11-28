@@ -6,7 +6,8 @@ import {
 import { EASE_APPLE } from '../utils/motion';
 import { prefersReducedMotion } from '../utils/scroll';
 import { dismissToast, useActiveToast } from '../utils/toast';
-import { SFCheckmarkCircleFill, SFXmark } from './SFSymbols';
+import { X } from 'lucide-react';
+import { AnimatedCheckIcon } from './icons/AnimatedLucide';
 
 /**
  * Reusable, accessible single non-stacking toast notification viewport (P2.3).
@@ -48,10 +49,9 @@ export function ToastViewport() {
             className="apple-ios-bar pointer-events-auto flex max-w-[min(92vw,420px)] items-center gap-2.5 rounded-full py-2.5 pl-4 pr-2.5 text-[13.5px] font-medium tracking-[-0.01em] text-[var(--apple-label-primary)]"
           >
             {toast.tone === 'success' ? (
-              <SFCheckmarkCircleFill
-                size={16}
-                className="shrink-0 text-[var(--apple-blue)]"
-              />
+              <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--apple-blue)]/14 text-[var(--apple-blue)]">
+                <AnimatedCheckIcon size={13} strokeWidth={2} active />
+              </span>
             ) : (
               <span
                 aria-hidden="true"
@@ -65,7 +65,7 @@ export function ToastViewport() {
               aria-label="Dismiss notification"
               className="apple-btn-icon ml-0.5 h-9 w-9 shrink-0 text-[var(--apple-label-tertiary)] hover:text-[var(--apple-label-primary)] sm:h-7 sm:w-7"
             >
-              <SFXmark size={12} />
+              <X size={12} strokeWidth={2} aria-hidden="true" />
             </button>
           </motion.div>
         )}

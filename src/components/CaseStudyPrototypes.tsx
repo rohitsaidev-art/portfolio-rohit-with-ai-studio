@@ -4,15 +4,15 @@ import type { PrototypeKind } from '../data/projects';
 import { EASE_APPLE, SPRING_SEGMENT } from '../utils/motion';
 import { playSuccessChime, playTap, playTick } from '../utils/soundEngine';
 import {
-  SFCheckmark,
-  SFExclamationTriangle,
-  SFHandRaised,
-  SFLeaf,
-  SFReset,
-  SFShieldCheck,
-  SFSliders,
-  SFSpeakerWave,
-} from './SFSymbols';
+  AlertTriangle,
+  Check,
+  Hand,
+  Leaf,
+  RotateCcw,
+  ShieldCheck,
+  SlidersHorizontal,
+  Volume2,
+} from 'lucide-react';
 
 interface CaseStudyPrototypeProps {
   kind: PrototypeKind;
@@ -167,7 +167,7 @@ function StallSyncStudy() {
   const isActionApplied = Boolean(heldBooths[activeBooth.id]);
 
   return (
-    <div className="rounded-[28px] bg-[var(--apple-bg-secondary)] p-6 sm:p-8">
+    <div className="rounded-[20px] bg-[var(--apple-bg-secondary)] p-6 sm:p-8">
       <div className="flex flex-col gap-4 pb-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="type-headline font-display">
@@ -255,17 +255,17 @@ function StallSyncStudy() {
             }}
             className="apple-btn-primary mt-5"
           >
-            <SFReset size={14} />
+            <RotateCcw size={14} strokeWidth={1.75} aria-hidden="true" />
             <span>Reset floor filters</span>
           </button>
         </div>
       ) : viewState === 'error' ? (
         <div
           role="alert"
-          className="apple-surface-subtle rounded-[22px] border border-[var(--apple-error)]/25 px-6 py-10 text-center sm:px-10"
+          className="apple-surface-subtle rounded-[20px] border border-[var(--apple-error)]/25 px-6 py-10 text-center sm:px-10"
         >
           <div className="mx-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--apple-error)]/10 text-[var(--apple-error)]">
-            <SFExclamationTriangle size={18} />
+            <AlertTriangle size={18} strokeWidth={1.75} aria-hidden="true" />
           </div>
           <h4 className="type-title-3 mt-3">
             Floor-plan sync interrupted
@@ -282,7 +282,7 @@ function StallSyncStudy() {
               }}
               className="apple-btn-primary"
             >
-              <SFReset size={14} />
+              <RotateCcw size={14} strokeWidth={1.75} aria-hidden="true" />
               <span>Retry floor sync</span>
             </button>
             <button
@@ -405,7 +405,7 @@ function StallSyncStudy() {
                 >
                   {isActionApplied ? (
                     <>
-                      <SFCheckmark size={15} className="text-[var(--apple-blue)]" />
+                      <Check size={15} strokeWidth={1.75} aria-hidden="true" className="text-[var(--apple-blue)]" />
                       <span>
                         {role === 'organizer' ? 'Booth placed on hold' : 'Application request noted'}
                       </span>
@@ -439,10 +439,10 @@ function MusicPwaStudy() {
   const barHeights = stage === 'listening' ? [18, 36, 24, 44, 28, 38, 20] : [8, 13, 10, 15, 10, 13, 8];
 
   return (
-    <div className="rounded-[28px] bg-[var(--apple-bg-secondary)] p-6 sm:p-8">
+    <div className="rounded-[20px] bg-[var(--apple-bg-secondary)] p-6 sm:p-8">
       <div className="flex flex-col gap-4 pb-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2.5">
-          <SFSpeakerWave size={20} className="text-[var(--apple-blue)]" />
+          <Volume2 size={20} strokeWidth={1.75} aria-hidden="true" className="text-[var(--apple-blue)]" />
           <p className="type-headline font-display">
             PWA Capture State Flow
           </p>
@@ -602,10 +602,10 @@ function MudradhaarStudy() {
   const current = MUDRAS.find((m) => m.id === activeId) ?? MUDRAS[0];
 
   return (
-    <div className="rounded-[28px] bg-[var(--apple-bg-secondary)] p-6 sm:p-8">
+    <div className="rounded-[20px] bg-[var(--apple-bg-secondary)] p-6 sm:p-8">
       <div className="flex flex-col gap-4 pb-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2.5">
-          <SFHandRaised size={20} className="text-[var(--apple-blue)]" />
+          <Hand size={20} strokeWidth={1.75} aria-hidden="true" className="text-[var(--apple-blue)]" />
           <p className="type-headline font-display">
             Core Mudra Vocabulary
           </p>
@@ -701,10 +701,10 @@ function PrecognitionStudy() {
   const item = TRIAGE_CASES.find((c) => c.id === selectedCase) ?? TRIAGE_CASES[0];
 
   return (
-    <div className="rounded-[28px] bg-[var(--apple-bg-secondary)] p-6 sm:p-8">
+    <div className="rounded-[20px] bg-[var(--apple-bg-secondary)] p-6 sm:p-8">
       <div className="flex flex-col gap-4 pb-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2.5">
-          <SFShieldCheck size={20} className="text-[var(--apple-blue)]" />
+          <ShieldCheck size={20} strokeWidth={1.75} aria-hidden="true" className="text-[var(--apple-blue)]" />
           <p className="type-headline font-display">
             Evidence-First Triage Ledger
           </p>
@@ -751,7 +751,7 @@ function PrecognitionStudy() {
       ) : viewState === 'empty' ? (
         <div className="apple-surface-subtle rounded-[22px] px-6 py-12 text-center sm:px-10">
           <div className="mx-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--apple-blue)]/10 text-[var(--apple-blue)]">
-            <SFCheckmark size={18} />
+            <Check size={18} strokeWidth={1.75} aria-hidden="true" />
           </div>
           <h4 className="type-title-3 mt-3">
             Triage queue clear
@@ -767,17 +767,17 @@ function PrecognitionStudy() {
             }}
             className="apple-btn-primary mt-5"
           >
-            <SFReset size={14} />
+            <RotateCcw size={14} strokeWidth={1.75} aria-hidden="true" />
             <span>Load sample case</span>
           </button>
         </div>
       ) : viewState === 'error' ? (
         <div
           role="alert"
-          className="apple-surface-subtle rounded-[22px] border border-[var(--apple-error)]/25 px-6 py-10 text-center sm:px-10"
+          className="apple-surface-subtle rounded-[20px] border border-[var(--apple-error)]/25 px-6 py-10 text-center sm:px-10"
         >
           <div className="mx-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--apple-error)]/10 text-[var(--apple-error)]">
-            <SFExclamationTriangle size={18} />
+            <AlertTriangle size={18} strokeWidth={1.75} aria-hidden="true" />
           </div>
           <h4 className="type-title-3 mt-3">
             Policy attribution ledger unavailable
@@ -794,7 +794,7 @@ function PrecognitionStudy() {
               }}
               className="apple-btn-primary"
             >
-              <SFReset size={14} />
+              <RotateCcw size={14} strokeWidth={1.75} aria-hidden="true" />
               <span>Reconnect evidence stream</span>
             </button>
             <button
@@ -878,10 +878,10 @@ function HubAppsStudy() {
     density === 'compact' ? 'py-3' : density === 'balanced' ? 'py-4' : 'py-5';
 
   return (
-    <div className="rounded-[28px] bg-[var(--apple-bg-secondary)] p-6 sm:p-8">
+    <div className="rounded-[20px] bg-[var(--apple-bg-secondary)] p-6 sm:p-8">
       <div className="flex flex-col gap-4 pb-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2.5">
-          <SFSliders size={20} className="text-[var(--apple-blue)]" />
+          <SlidersHorizontal size={20} strokeWidth={1.75} aria-hidden="true" className="text-[var(--apple-blue)]" />
           <p className="type-headline font-display">
             Unified Density Scale
           </p>
@@ -944,14 +944,14 @@ function HubAppsStudy() {
               }}
               className="apple-btn-primary mt-5"
             >
-              <SFReset size={14} />
+              <RotateCcw size={14} strokeWidth={1.75} aria-hidden="true" />
               <span>Restore sample modules</span>
             </button>
           </div>
         ) : viewState === 'error' ? (
           <div role="alert" className="px-6 py-10 text-center">
             <div className="mx-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--apple-error)]/10 text-[var(--apple-error)]">
-              <SFExclamationTriangle size={18} />
+              <AlertTriangle size={18} strokeWidth={1.75} aria-hidden="true" />
             </div>
             <p className="type-headline mt-3 text-[var(--apple-label-primary)]">
               Module status sync timed out
@@ -967,7 +967,7 @@ function HubAppsStudy() {
               }}
               className="apple-btn-primary mt-5"
             >
-              <SFReset size={14} />
+              <RotateCcw size={14} strokeWidth={1.75} aria-hidden="true" />
               <span>Retry module sync</span>
             </button>
           </div>
@@ -1034,10 +1034,10 @@ function MycroHarvestStudy() {
   const activeStage = GROWTH_STAGES.find((s) => s.id === stageId) ?? GROWTH_STAGES[0];
 
   return (
-    <div className="rounded-[28px] bg-[var(--apple-bg-secondary)] p-6 sm:p-8">
+    <div className="rounded-[20px] bg-[var(--apple-bg-secondary)] p-6 sm:p-8">
       <div className="flex flex-col gap-4 pb-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2.5">
-          <SFLeaf size={20} className="text-[var(--apple-blue)]" />
+          <Leaf size={20} strokeWidth={1.75} aria-hidden="true" className="text-[var(--apple-blue)]" />
           <p className="type-headline font-display">
             Batch Lifecycle &amp; Environment
           </p>

@@ -46,9 +46,9 @@ export const SITE_CONFIG = {
   email: 'hello@aaravsen.design',
   responseTime: 'Usually replies within two business days.',
   hero: {
-    headline: 'Designing thoughtful digital products, from first concept to final interaction.',
+    headline: 'Designing thoughtful digital products, end to end.',
     intro:
-      'I partner with founders, product teams, and engineers to shape clear interfaces, resilient design systems, and tactile web experiences.',
+      'Partnering with founders and teams on clear interfaces, systems, and web craft.',
     primaryCta: 'Explore selected work',
     secondaryCta: 'Get in touch',
   },

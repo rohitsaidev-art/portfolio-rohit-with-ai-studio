@@ -5,7 +5,7 @@ import {
   NOTE_TOPICS,
   type NoteTopic,
 } from '../data/notes';
-import { SFChevronRight } from '../components/SFSymbols';
+import { ChevronRight } from 'lucide-react';
 import {
   filterNotesByTopic,
   getNoteMetrics,
@@ -13,6 +13,7 @@ import {
 } from '../utils/portfolio';
 import { EASE_APPLE, SPRING_SEGMENT } from '../utils/motion';
 import { playTick } from '../utils/soundEngine';
+import { CassetteIterationPlayground } from '../components/CassetteIterationPlayground';
 
 interface NotesPageProps {
   onNavigate: (path: string) => void;
@@ -45,13 +46,8 @@ export function NotesPage({ onNavigate }: NotesPageProps) {
   return (
     <div className="bg-[var(--apple-bg)]">
       {/* Editorial Journal Header */}
-      <section className="mx-auto max-w-[1160px] px-5 pb-14 pt-20 sm:px-8 sm:pb-16 sm:pt-28">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.48, ease: EASE_APPLE }}
-          className="max-w-[780px]"
-        >
+      <section className="mx-auto max-w-[1160px] px-5 pb-14 pt-12 sm:px-8 sm:pb-16 sm:pt-16">
+        <div className="max-w-[780px]">
           <p className="type-eyebrow text-[var(--apple-label-secondary)]">
             Design Journal ·{' '}
             <span className="tabular-nums">
@@ -64,7 +60,7 @@ export function NotesPage({ onNavigate }: NotesPageProps) {
           <p className="type-lead measure-lead mt-5">
             Working essays and field notes written between product engagements. Unpublished seed essays are clearly marked Draft while ideas are being refined.
           </p>
-        </motion.div>
+        </div>
 
         {/* Topic Filter Controls + Accurate Live Count */}
         <div className="mt-10 flex flex-col gap-4 border-t border-[var(--apple-separator)] pt-8 lg:flex-row lg:items-center lg:justify-between">
@@ -128,6 +124,9 @@ export function NotesPage({ onNavigate }: NotesPageProps) {
         </div>
       </section>
 
+      {/* Interactive Cassette Player Iteration Playground */}
+      <CassetteIterationPlayground />
+
       {/* Editorial Article Index */}
       <section
         aria-label="Design journal articles"
@@ -135,7 +134,7 @@ export function NotesPage({ onNavigate }: NotesPageProps) {
       >
         <div className="mx-auto max-w-[1160px] px-5 sm:px-8">
           {visibleNotes.length === 0 ? (
-            <div className="apple-surface-subtle rounded-[28px] px-7 py-14 text-center sm:px-12">
+            <div className="apple-surface-subtle rounded-[20px] px-7 py-14 text-center sm:px-12">
               <h2 className="type-title-3">No notes in this topic yet.</h2>
               <p className="type-callout mx-auto mt-2.5 max-w-[46ch]">
                 Reset the topic filter to browse all current working drafts.
@@ -210,8 +209,10 @@ export function NotesPage({ onNavigate }: NotesPageProps) {
                             <span className="group-hover:underline">
                               {isDraft ? 'Read draft' : 'Read note'}
                             </span>
-                            <SFChevronRight
+                            <ChevronRight
                               size={14}
+                              strokeWidth={1.75}
+                              aria-hidden="true"
                               className="transition-transform duration-200 group-hover:translate-x-0.5"
                             />
                           </span>

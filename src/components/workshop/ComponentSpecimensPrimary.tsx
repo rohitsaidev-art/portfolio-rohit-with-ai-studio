@@ -20,21 +20,19 @@ import { ProjectCreditsSection } from '../ProjectCreditsSection';
 import { ReaderComfortPopover } from '../ReaderComfortPopover';
 import { RelatedProjectsSection } from '../RelatedProjectsSection';
 import {
-  SFArrowUp,
-  SFArrowUpRight,
-  SFBookmark,
-  SFBookmarkFill,
-  SFCheckmark,
-  SFChevronDown,
-  SFChevronRight,
-  SFMagnifyingGlass,
-  SFMenu,
-  SFSliders,
-  SFSpeakerWave,
-  SFXmark,
-  SFZoomIn,
-  SFZoomOut,
-} from '../SFSymbols';
+  ArrowUp,
+  ArrowUpRight,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Menu,
+  Search,
+  SlidersHorizontal,
+  Volume2,
+  X,
+  ZoomIn,
+  ZoomOut,
+} from 'lucide-react';
 import {
   TableOfContents,
   TOC_VARIANTS,
@@ -49,11 +47,36 @@ export interface SpecimenRenderProps {
 }
 
 const SAMPLE_TOC_CHAPTERS: readonly TocChapter[] = [
-  { id: 'overview', num: '01', label: 'Overview' },
-  { id: 'problem', num: '02', label: 'Problem & Context' },
-  { id: 'architecture', num: '03', label: 'Spatial Architecture' },
-  { id: 'prototype', num: '04', label: 'Interactive Study' },
-  { id: 'outcomes', num: '05', label: 'Outcomes & Craft' },
+  {
+    id: 'overview',
+    num: '01',
+    label: 'Overview',
+    subtitle: 'Framing the product challenge, constraints, and measurable scope.',
+  },
+  {
+    id: 'problem',
+    num: '02',
+    label: 'Problem & Context',
+    subtitle: 'Field observations, friction bottlenecks, and baseline user journeys.',
+  },
+  {
+    id: 'architecture',
+    num: '03',
+    label: 'Spatial Architecture',
+    subtitle: 'Information hierarchy, navigation primitives, and system tokens.',
+  },
+  {
+    id: 'prototype',
+    num: '04',
+    label: 'Interactive Study',
+    subtitle: 'Tactile micro-interactions validated through live prototyping.',
+  },
+  {
+    id: 'outcomes',
+    num: '05',
+    label: 'Outcomes & Craft',
+    subtitle: 'Production results, accessibility verification, and design learnings.',
+  },
 ];
 
 function ControlBar({
@@ -203,7 +226,7 @@ function ButtonsSpecimen() {
             >
               {isLoading && <span className="apple-spinner" aria-hidden="true" />}
               <span>{isLoading ? 'Opening case study…' : 'Read case study'}</span>
-              {withIcon && !isLoading && <SFChevronRight size={14} />}
+              {withIcon && !isLoading && <ChevronRight size={14} strokeWidth={1.75} aria-hidden="true" />}
             </button>
           ) : (
             <button
@@ -235,7 +258,7 @@ function ButtonsSpecimen() {
                       : 'Copy email address'}
               </span>
               {withIcon && !isLoading && (
-                <SFChevronRight size={compact ? 13 : 15} />
+                <ChevronRight size={compact ? 13 : 15} strokeWidth={compact ? 2 : 1.75} aria-hidden="true" />
               )}
             </button>
           )}
@@ -270,7 +293,7 @@ function ButtonsSpecimen() {
             className="apple-link inline-flex items-center gap-1 px-1 text-[15px] font-medium text-[var(--apple-link)] hover:underline"
           >
             <span>Editorial link</span>
-            <SFChevronRight size={14} />
+            <ChevronRight size={14} strokeWidth={1.75} aria-hidden="true" />
           </a>
         </div>
       </div>
@@ -300,7 +323,7 @@ function IconButtonsSpecimen() {
             }}
             className="apple-link rounded-[8px] border border-[var(--apple-separator)] bg-[var(--apple-surface-elevated)] px-2.5 py-1 text-[12px] font-medium text-[var(--apple-label-primary)]"
           >
-            Shortlist Selected: {saved ? 'On' : 'Off'}
+            Toggle Selected: {saved ? 'On' : 'Off'}
           </button>
           <button
             type="button"
@@ -338,7 +361,7 @@ function IconButtonsSpecimen() {
             onClick={() => playTick()}
             className="apple-btn-icon h-11 w-11 text-[var(--apple-label-primary)]"
           >
-            {loading ? <span className="apple-spinner" aria-hidden="true" /> : <SFSpeakerWave size={17} />}
+            {loading ? <span className="apple-spinner" aria-hidden="true" /> : <Volume2 size={17} strokeWidth={1.75} aria-hidden="true" />}
           </button>
         </div>
 
@@ -351,17 +374,17 @@ function IconButtonsSpecimen() {
             onClick={() => playTick()}
             className="apple-btn-icon h-11 w-11 bg-[var(--apple-control-tonal)] text-[var(--apple-label-primary)] hover:bg-[var(--apple-control-tonal-hover)]"
           >
-            <SFXmark size={15} />
+            <X size={15} strokeWidth={1.75} aria-hidden="true" />
           </button>
         </div>
 
         <div className="space-y-2">
-          <p className="type-caption text-[var(--apple-label-tertiary)]">Shortlist Toggle</p>
+          <p className="type-caption text-[var(--apple-label-tertiary)]">Active Toggle</p>
           <button
             type="button"
             disabled={disabled}
             aria-pressed={saved}
-            aria-label={saved ? 'Remove specimen from shortlist' : 'Save specimen to shortlist'}
+            aria-label={saved ? 'Disable active icon state' : 'Enable active icon state'}
             onClick={() => {
               playTick();
               setSaved((prev) => !prev);
@@ -372,7 +395,7 @@ function IconButtonsSpecimen() {
                 : 'border-[var(--apple-separator)] bg-[var(--apple-surface-elevated)] text-[var(--apple-label-secondary)]'
             }`}
           >
-            {saved ? <SFBookmarkFill size={15} /> : <SFBookmark size={15} />}
+            <Volume2 size={15} strokeWidth={1.75} aria-hidden="true" />
           </button>
         </div>
 
@@ -393,7 +416,7 @@ function IconButtonsSpecimen() {
               }}
               className="apple-btn-icon h-8 w-8 text-[var(--apple-label-primary)]"
             >
-              <SFZoomOut size={14} />
+              <ZoomOut size={14} strokeWidth={1.75} aria-hidden="true" />
             </button>
             <button
               type="button"
@@ -417,7 +440,7 @@ function IconButtonsSpecimen() {
               }}
               className="apple-btn-icon h-8 w-8 text-[var(--apple-label-primary)]"
             >
-              <SFZoomIn size={14} />
+              <ZoomIn size={14} strokeWidth={1.75} aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -685,8 +708,10 @@ function SearchSelectSpecimen() {
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1 sm:max-w-[340px]">
-          <SFMagnifyingGlass
+          <Search
             size={15}
+            strokeWidth={1.75}
+            aria-hidden="true"
             className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--apple-label-tertiary)]"
           />
           <input
@@ -709,7 +734,7 @@ function SearchSelectSpecimen() {
               aria-label="Clear search query"
               className="apple-btn-icon absolute right-1.5 top-1/2 h-8 w-8 -translate-y-1/2 text-[var(--apple-label-tertiary)] hover:text-[var(--apple-label-primary)]"
             >
-              <SFXmark size={12} />
+              <X size={12} strokeWidth={2} aria-hidden="true" />
             </button>
           )}
         </div>
@@ -730,8 +755,10 @@ function SearchSelectSpecimen() {
             <option value="newest">Sort: Newest</option>
             <option value="alpha">Sort: A – Z</option>
           </select>
-          <SFChevronDown
+          <ChevronDown
             size={14}
+            strokeWidth={1.75}
+            aria-hidden="true"
             className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--apple-label-secondary)]"
           />
         </div>
@@ -972,7 +999,6 @@ function NavbarSpecimen({
   const [activeNav, setActiveNav] = useState<'Work' | 'Notes' | 'About' | 'Contact'>('Work');
   const [scrolled, setScrolled] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
-  const [showShortlist, setShowShortlist] = useState(true);
 
   const isMobileFrame = viewportMode === 'mobile';
 
@@ -1003,17 +1029,6 @@ function NavbarSpecimen({
             className="apple-link rounded-[8px] border border-[var(--apple-separator)] bg-[var(--apple-surface-elevated)] px-2.5 py-1 text-[12px] font-medium text-[var(--apple-label-primary)]"
           >
             Scrolled Shadow: {scrolled ? 'On' : 'Off'}
-          </button>
-          <button
-            type="button"
-            aria-pressed={showShortlist}
-            onClick={() => {
-              playTick();
-              setShowShortlist((prev) => !prev);
-            }}
-            className="apple-link rounded-[8px] border border-[var(--apple-separator)] bg-[var(--apple-surface-elevated)] px-2.5 py-1 text-[12px] font-medium text-[var(--apple-label-primary)]"
-          >
-            Shortlist Pill: {showShortlist ? '2 Saved' : 'Hidden (0)'}
           </button>
         </div>
       </ControlBar>
@@ -1060,19 +1075,12 @@ function NavbarSpecimen({
             )}
 
             <div className="flex items-center gap-1.5">
-              {showShortlist && (
-                <span className="inline-flex h-8 items-center gap-1 rounded-full bg-[var(--apple-blue)]/10 px-2.5 text-[12px] font-medium text-[var(--apple-link)]">
-                  <SFBookmarkFill size={11} />
-                  {!isMobileFrame && <span>Shortlist</span>}
-                  <span className="tabular-nums font-semibold">2</span>
-                </span>
-              )}
               <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[var(--apple-control-tonal)] px-2.5 text-[11.5px] text-[var(--apple-label-secondary)]">
-                <SFMagnifyingGlass size={12} />
+                <Search size={12} strokeWidth={2} aria-hidden="true" />
                 {!isMobileFrame && <span className="tabular-nums">⌘K</span>}
               </span>
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--apple-label-secondary)]">
-                <SFSliders size={14} />
+                <SlidersHorizontal size={14} strokeWidth={1.75} aria-hidden="true" />
               </span>
               {isMobileFrame ? (
                 <button
@@ -1085,7 +1093,11 @@ function NavbarSpecimen({
                   }}
                   className="apple-btn-icon h-9 w-9 text-[var(--apple-label-primary)]"
                 >
-                  {mobileDrawerOpen ? <SFXmark size={16} /> : <SFMenu size={18} />}
+                  {mobileDrawerOpen ? (
+                    <X size={16} strokeWidth={1.75} aria-hidden="true" />
+                  ) : (
+                    <Menu size={18} strokeWidth={1.75} aria-hidden="true" />
+                  )}
                 </button>
               ) : (
                 <span className="apple-btn-primary !min-h-[30px] !h-[30px] !px-3.5 !py-0 !text-[12px] !font-medium">
@@ -1185,7 +1197,7 @@ function BreadcrumbsSpecimen({
    B3. Table of Contents Specimen (Real Production Component — 5 Architectures)
    ========================================================================== */
 function TocSpecimen() {
-  const [variant, setVariant] = useState<TocVariant>('macos-sidebar');
+  const [variant, setVariant] = useState<TocVariant>('scroll-index');
   const [activeChapter, setActiveChapter] = useState<string>('architecture');
   const [narrating, setNarrating] = useState<boolean>(true);
   const [progress, setProgress] = useState<number>(0.54);
@@ -1228,12 +1240,14 @@ function TocSpecimen() {
         </div>
       </ControlBar>
 
-      <div className="rounded-[20px] border border-[var(--apple-separator-subtle)] bg-[var(--apple-bg)] p-5">
+      <div className="min-h-[320px] rounded-[20px] border border-[var(--apple-separator-subtle)] bg-[var(--apple-bg)] p-5">
         <div
           className={
             variant === 'apple-local-nav' || variant === 'ios-capsule'
               ? 'w-full'
-              : 'max-w-[260px]'
+              : variant === 'chapter-scrubber' || variant === 'scroll-index'
+                ? 'max-w-[360px]'
+                : 'max-w-[260px]'
           }
         >
           <TableOfContents
@@ -1283,7 +1297,7 @@ function CommandPaletteSpecimen({
           }}
           className="apple-btn-primary !min-h-[40px] !px-4 !text-[13.5px]"
         >
-          <SFMagnifyingGlass size={14} />
+          <Search size={14} strokeWidth={1.75} aria-hidden="true" />
           <span>Open Command Palette (⌘K)</span>
         </button>
       </div>
@@ -1291,7 +1305,7 @@ function CommandPaletteSpecimen({
       {/* Static inline anatomy summary so the layout is visible even before opening */}
       <div className="rounded-[20px] border border-[var(--apple-separator)] bg-[var(--apple-surface-elevated)] p-4">
         <div className="flex items-center gap-2.5 border-b border-[var(--apple-separator-subtle)] pb-3 text-[13.5px] text-[var(--apple-label-tertiary)]">
-          <SFMagnifyingGlass size={14} />
+          <Search size={14} strokeWidth={1.75} aria-hidden="true" />
           <span>Search case studies, chapters, notes, or actions…</span>
           <span className="ml-auto rounded-[6px] border border-[var(--apple-separator)] px-1.5 py-0.5 font-mono text-[10.5px]">
             ESC
@@ -1407,8 +1421,10 @@ function FloatingBackToTopSpecimen() {
             aria-label="Back to top desktop preview"
             className="apple-ios-bar group inline-flex h-11 items-center gap-2 rounded-full px-4 text-[13px] font-medium tracking-[-0.01em] text-[var(--apple-label-primary)] transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.96]"
           >
-            <SFArrowUp
+            <ArrowUp
               size={14}
+              strokeWidth={1.75}
+              aria-hidden="true"
               className="text-[var(--apple-label-secondary)] transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:text-[var(--apple-link)]"
             />
             <span>Top</span>
@@ -1420,7 +1436,7 @@ function FloatingBackToTopSpecimen() {
             aria-label="Back to top mobile compact preview"
             className="apple-ios-bar group inline-flex h-11 w-11 items-center justify-center rounded-full text-[var(--apple-label-primary)] transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.96]"
           >
-            <SFArrowUp size={14} className="text-[var(--apple-label-secondary)] group-hover:text-[var(--apple-link)]" />
+            <ArrowUp size={14} strokeWidth={1.75} aria-hidden="true" className="text-[var(--apple-label-secondary)] group-hover:text-[var(--apple-link)]" />
           </button>
         </div>
 
@@ -1442,11 +1458,12 @@ function ProjectCardSpecimen({
   viewportMode: 'desktop' | 'tablet' | 'mobile';
   onPreviewNavigate: (path: string) => void;
 }) {
-  const [variant, setVariant] = useState<'featured' | 'standard' | 'wide'>('featured');
+  const [variant, setVariant] = useState<'rail' | 'featured' | 'standard' | 'wide'>('rail');
   const [projectIndex, setProjectIndex] = useState<string>('0');
 
   const project = PROJECTS[Number(projectIndex)] ?? PROJECTS[0];
-  const effectiveVariant = viewportMode === 'mobile' ? 'standard' : variant;
+  const effectiveVariant =
+    viewportMode === 'mobile' && variant !== 'rail' ? 'standard' : variant;
 
   return (
     <div>
@@ -1456,6 +1473,7 @@ function ProjectCardSpecimen({
           value={variant}
           onChange={setVariant}
           options={[
+            { id: 'rail', label: 'Rail' },
             { id: 'featured', label: 'Featured' },
             { id: 'standard', label: 'Standard' },
             { id: 'wide', label: 'Wide' },
@@ -1473,7 +1491,15 @@ function ProjectCardSpecimen({
         />
       </ControlBar>
 
-      <div className={effectiveVariant === 'standard' ? 'mx-auto max-w-[480px]' : ''}>
+      <div
+        className={
+          effectiveVariant === 'rail'
+            ? 'mx-auto max-w-[456px]'
+            : effectiveVariant === 'standard'
+              ? 'mx-auto max-w-[480px]'
+              : ''
+        }
+      >
         <ProjectCard
           project={project}
           onNavigate={onPreviewNavigate}
@@ -1799,8 +1825,10 @@ function FormFieldsSpecimen() {
               <option value="Next 1–3 months">Next 1–3 months</option>
               <option value="Q2 2027 or later">Q2 2027 or later</option>
             </select>
-            <SFChevronDown
+            <ChevronDown
               size={15}
+              strokeWidth={1.75}
+              aria-hidden="true"
               className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--apple-label-secondary)]"
             />
           </div>
@@ -1849,7 +1877,7 @@ function FormFieldsSpecimen() {
 
         {isSuccess && (
           <p className="type-footnote mt-1.5 inline-flex items-center gap-1.5 text-[var(--apple-success)]">
-            <SFCheckmark size={12} />
+            <Check size={12} strokeWidth={2} aria-hidden="true" />
             <span>Valid format confirmed</span>
           </p>
         )}
@@ -1948,7 +1976,7 @@ function ContactFormFlowSpecimen() {
       {phase === 'success' ? (
         <div className="apple-card-static max-w-[560px] rounded-[26px] p-7">
           <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--apple-blue)]/10 text-[var(--apple-blue)]">
-            <SFCheckmark size={18} />
+            <Check size={18} strokeWidth={1.75} aria-hidden="true" />
           </div>
           <h4 className="type-title-3 mt-4">
             Inquiry prepared, {values.name || 'Rohan Mehta'}.
@@ -1970,7 +1998,7 @@ function ContactFormFlowSpecimen() {
               className="apple-btn-primary !min-h-[40px] !px-4 !text-[14px]"
             >
               <span>Open in Mail</span>
-              <SFArrowUpRight size={14} />
+              <ArrowUpRight size={14} strokeWidth={1.75} aria-hidden="true" />
             </button>
             <button
               type="button"

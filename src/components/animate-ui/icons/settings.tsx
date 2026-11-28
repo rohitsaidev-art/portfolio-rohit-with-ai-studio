@@ -19,10 +19,10 @@ const animations = {
         rotate: 0,
       },
       animate: {
-        rotate: [0, 90, 180],
+        rotate: 60,
         transition: {
-          duration: 1.25,
-          ease: 'easeInOut',
+          duration: 0.26,
+          ease: [0.23, 1, 0.32, 1],
         },
       },
     },
@@ -35,10 +35,10 @@ const animations = {
         rotate: 0,
       },
       animate: {
-        rotate: 360,
+        rotate: 180,
         transition: {
-          duration: 2,
-          ease: 'linear',
+          duration: 0.45,
+          ease: [0.23, 1, 0.32, 1],
         },
       },
     },
@@ -59,7 +59,7 @@ function IconComponent({ size, ...props }: SettingsProps) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={2}
+      strokeWidth={1.75}
       strokeLinecap="round"
       strokeLinejoin="round"
       {...props}

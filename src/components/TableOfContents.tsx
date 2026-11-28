@@ -4,18 +4,20 @@ import type { TocVariant } from '../utils/portfolio';
 import { EASE_APPLE, SPRING_SEGMENT } from '../utils/motion';
 import { playTap, playTick } from '../utils/soundEngine';
 import {
-  SFCheckmark,
-  SFChevronDown,
-  SFCube,
-  SFDial,
-  SFDocText,
-  SFEye,
-  SFLayers,
-  SFListBullet,
-  SFScope,
-  SFSparkles,
-  SFWaveform,
-} from './SFSymbols';
+  AudioLines,
+  Box,
+  Check,
+  ChevronDown,
+  Crosshair,
+  Eye,
+  FileText,
+  Gauge,
+  Layers,
+  List,
+  Sparkles,
+} from 'lucide-react';
+import { ChapterScrubber, type Chapter } from './toc/ChapterScrubber';
+import { ScrollIndexToc } from './toc/ScrollIndexToc';
 
 export interface TocChapter {
   id: string;
@@ -67,7 +69,7 @@ export const TOC_VARIANTS: readonly TocVariantMeta[] = [
     shortName: 'macOS Rail',
     inspiration: 'Apple Developer Documentation & macOS Settings',
     summary:
-      'A structured left inspector rail with custom SF Symbols per chapter, vertical progress hairline, soft Apple Blue selection tint, and completion percentage.',
+      'A structured left inspector rail with Lucide icons per chapter, vertical progress hairline, soft cobalt selection tint, and completion percentage.',
     strengths: 'Best for deep analytical scanning and technical architecture case studies.',
   },
   {
@@ -79,20 +81,38 @@ export const TOC_VARIANTS: readonly TocVariantMeta[] = [
       'A physical draggable vertical track with chapter detents—drag the Apple thumb directly along the rail to jump through chapters in real time.',
     strengths: 'Tactile, direct-manipulation control that pairs naturally with Read Aloud.',
   },
+  {
+    id: 'chapter-scrubber',
+    name: 'Minimal Chapter Scrubber',
+    shortName: 'Chapter Scrubber',
+    inspiration: 'Ruixen UI Editorial Scrubber',
+    summary:
+      'Minimalist vertical tick scrubber displaying only the active section beside a blue (#0A84FF) tick at rest, smoothly revealing all headings in place on hover or focus.',
+    strengths: 'Zero visual noise at rest with instant in-place expansion and zero layout shift.',
+  },
+  {
+    id: 'scroll-index',
+    name: 'Proportional Scroll Index',
+    shortName: 'Scroll Index',
+    inspiration: 'Kokonut UI Scroll Index',
+    summary:
+      'Proportional vertical tick rail with a continuous reading playhead, Gaussian dock-swell magnification on hover, direct pointer drag-scrubbing with flick momentum snap, and a brief section-entry label flash.',
+    strengths: 'Shows real section length proportions and continuous progress between headings with physical scrub control.',
+  },
 ];
 
 function ChapterSymbol({ index, className }: { index: number; className?: string }) {
   const icons = [
-    SFDocText,
-    SFScope,
-    SFEye,
-    SFLayers,
-    SFDial,
-    SFCube,
-    SFSparkles,
+    FileText,
+    Crosshair,
+    Eye,
+    Layers,
+    Gauge,
+    Box,
+    Sparkles,
   ];
   const Icon = icons[index % icons.length];
-  return <Icon size={15} className={className} />;
+  return <Icon size={15} strokeWidth={1.75} aria-hidden="true" className={className} />;
 }
 
 interface TableOfContentsProps {
@@ -170,6 +190,26 @@ export function TableOfContents({
           onSelectChapter={onSelectChapter}
         />
       );
+    case 'chapter-scrubber':
+      return (
+        <ChapterScrubberToc
+          chapters={chapters}
+          activeChapter={activeChapter}
+          onSelectChapter={onSelectChapter}
+          layoutNamespace={layoutNamespace}
+        />
+      );
+    case 'scroll-index':
+      return (
+        <ScrollIndexToc
+          chapters={chapters}
+          activeChapter={activeChapter}
+          readingProgress={readingProgress}
+          narratingChapterId={narratingChapterId}
+          onSelectChapter={onSelectChapter}
+          className="sticky top-28"
+        />
+      );
   }
 }
 
@@ -223,7 +263,7 @@ function NotchRailToc({
                 {/* Optical Apple Notch Bar */}
                 <span
                   aria-hidden="true"
-                  className={`block h-[2.5px] shrink-0 rounded-full transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                  className={`block h-[2.5px] shrink-0 rounded-full transition-[width,background-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
                     isActive
                       ? 'w-7 bg-[var(--apple-blue)]'
                       : expanded
@@ -234,7 +274,7 @@ function NotchRailToc({
 
                 {/* Label smoothly reveals on hover or when active */}
                 <span
-                  className={`flex min-w-0 items-center gap-1.5 truncate text-[13px] tracking-[-0.012em] transition-all duration-250 ${
+                  className={`flex min-w-0 items-center gap-1.5 truncate text-[13px] tracking-[-0.012em] transition-[opacity,transform,color] duration-250 ${
                     isActive
                       ? 'translate-x-0 font-semibold text-[var(--apple-label-primary)] opacity-100'
                       : expanded
@@ -244,7 +284,7 @@ function NotchRailToc({
                 >
                   <span className="truncate">{chapter.label}</span>
                   {isNarrating && (
-                    <SFWaveform size={12} className="shrink-0 text-[var(--apple-blue)]" />
+                    <AudioLines size={12} strokeWidth={2} aria-hidden="true" className="shrink-0 text-[var(--apple-blue)]" />
                   )}
                 </span>
               </button>
@@ -324,8 +364,10 @@ function IosCapsuleToc({
           <span className="max-w-[160px] truncate font-semibold text-[var(--apple-label-primary)]">
             {current.label}
           </span>
-          <SFChevronDown
+          <ChevronDown
             size={14}
+            strokeWidth={1.75}
+            aria-hidden="true"
             className={`text-[var(--apple-label-secondary)] transition-transform duration-200 ${
               open ? 'rotate-180' : ''
             }`}
@@ -339,11 +381,11 @@ function IosCapsuleToc({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -6, scale: 0.97 }}
               transition={{ duration: 0.22, ease: EASE_APPLE }}
-              className="apple-ios-bar absolute right-0 mt-2.5 w-[280px] origin-top-right overflow-hidden rounded-[22px] p-2"
+              className="apple-ios-bar absolute right-0 mt-2.5 w-[280px] origin-top-right overflow-hidden rounded-[20px] p-2"
             >
               <div className="type-caption flex items-center justify-between px-3 py-2 text-[var(--apple-label-tertiary)]">
                 <span className="inline-flex items-center gap-1.5">
-                  <SFListBullet size={13} />
+                  <List size={13} strokeWidth={2} aria-hidden="true" />
                   <span>Chapters</span>
                 </span>
                 <span className="tabular-nums">{Math.round(readingProgress * 100)}% read</span>
@@ -380,13 +422,17 @@ function IosCapsuleToc({
                         </span>
 
                         {isNarrating ? (
-                          <SFWaveform
+                          <AudioLines
                             size={13}
+                            strokeWidth={2}
+                            aria-hidden="true"
                             className={isActive ? 'text-white' : 'text-[var(--apple-blue)]'}
                           />
                         ) : isVisited ? (
-                          <SFCheckmark
+                          <Check
                             size={13}
+                            strokeWidth={2}
+                            aria-hidden="true"
                             className={isActive ? 'text-white' : 'text-[var(--apple-blue)]'}
                           />
                         ) : null}
@@ -422,7 +468,7 @@ function AppleLocalNavToc({
   return (
     <div
       data-sticky-subnav="true"
-      className="sticky top-[52px] z-30 border-b border-[var(--apple-separator-subtle)] bg-[var(--apple-surface-glass)] backdrop-blur-xl backdrop-saturate-[180%]"
+      className="editorial-nav-surface sticky top-[52px] z-30 border-b border-[var(--apple-separator-subtle)]"
     >
       <div className="mx-auto flex max-w-[1160px] items-center justify-between gap-4 px-5 py-2.5 sm:px-8">
         <nav
@@ -458,7 +504,7 @@ function AppleLocalNavToc({
                   {chapter.num}
                 </span>
                 <span>{chapter.label}</span>
-                {isNarrating && <SFWaveform size={12} className="text-[var(--apple-blue)]" />}
+                {isNarrating && <AudioLines size={12} strokeWidth={2} aria-hidden="true" className="text-[var(--apple-blue)]" />}
               </button>
             );
           })}
@@ -501,7 +547,7 @@ function MacOsSidebarToc({
 
   return (
     <nav aria-label="macOS chapters sidebar" className="sticky top-24">
-      <div className="rounded-[22px] bg-[var(--apple-bg-secondary)] p-3">
+      <div className="rounded-[20px] bg-[var(--apple-bg-secondary)] p-3">
         <div className="flex items-center justify-between px-2.5 pb-2.5 pt-1">
           <span className="type-caption text-[var(--apple-label-secondary)]">
             Contents
@@ -521,7 +567,7 @@ function MacOsSidebarToc({
                 <button
                   type="button"
                   onClick={() => onSelectChapter(chapter.id)}
-                  className={`flex w-full items-center justify-between gap-2 rounded-[14px] px-2.5 py-2 text-left text-[13.5px] tracking-[-0.012em] transition-all duration-200 ${
+                  className={`flex w-full items-center justify-between gap-2 rounded-[14px] px-2.5 py-2 text-left text-[13.5px] tracking-[-0.012em] transition-[background-color,color,box-shadow] duration-200 ${
                     isActive
                       ? 'apple-pill-shadow bg-[var(--apple-control-thumb)] font-semibold text-[var(--apple-label-primary)]'
                       : 'text-[var(--apple-label-secondary)] hover:bg-[var(--apple-control-hover)] hover:text-[var(--apple-label-primary)]'
@@ -543,9 +589,9 @@ function MacOsSidebarToc({
                   </span>
 
                   {isNarrating ? (
-                    <SFWaveform size={13} className="shrink-0 text-[var(--apple-blue)]" />
+                    <AudioLines size={13} strokeWidth={2} aria-hidden="true" className="shrink-0 text-[var(--apple-blue)]" />
                   ) : isDone ? (
-                    <SFCheckmark size={12} className="shrink-0 text-[var(--apple-blue)]" />
+                    <Check size={12} strokeWidth={2} aria-hidden="true" className="shrink-0 text-[var(--apple-blue)]" />
                   ) : null}
                 </button>
               </li>
@@ -707,7 +753,7 @@ function TactileScrubberToc({
                     {chapter.label}
                   </span>
                   {isNarrating && (
-                    <SFWaveform size={12} className="shrink-0 text-[var(--apple-blue)]" />
+                    <AudioLines size={12} strokeWidth={2} aria-hidden="true" className="shrink-0 text-[var(--apple-blue)]" />
                   )}
                 </button>
               </li>
@@ -718,3 +764,35 @@ function TactileScrubberToc({
     </nav>
   );
 }
+
+/* 6. Minimalist Editorial Chapter Scrubber (src/components/toc/ChapterScrubber) */
+function ChapterScrubberToc({
+  chapters,
+  activeChapter,
+  onSelectChapter,
+  layoutNamespace,
+}: {
+  chapters: readonly TocChapter[];
+  activeChapter: string;
+  onSelectChapter: (id: string) => void;
+  layoutNamespace: string;
+}) {
+  const scrubberChapters: Chapter[] = chapters.map((ch) => ({
+    id: ch.id,
+    title: ch.label,
+  }));
+
+  return (
+    <ChapterScrubber
+      chapters={scrubberChapters}
+      activeChapterId={activeChapter}
+      label="Table of contents"
+      layoutNamespace={layoutNamespace}
+      onSelect={(chapter) => {
+        onSelectChapter(chapter.id);
+      }}
+      className="sticky top-28"
+    />
+  );
+}
+

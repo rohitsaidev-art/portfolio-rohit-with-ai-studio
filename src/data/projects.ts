@@ -49,11 +49,23 @@ export interface ProjectBeforeAfterPair {
   caption?: string;
 }
 
+export interface ProjectCardTestimonial {
+  quote: string;
+  authorName: string;
+  designation: string;
+  avatarInitials: string;
+  avatarPalette: readonly [string, string];
+}
+
 export interface CaseStudyProject {
   slug: string;
   title: string;
   tagline: string;
   shortDescription: string;
+  cardSummary: string;
+  cardTestimonial?: ProjectCardTestimonial;
+  industry: string;
+  tags: string[];
   category: string;
   filterGroup: Exclude<ProjectFilter, 'all'>;
   role: string;
@@ -124,12 +136,23 @@ export const PROJECTS: CaseStudyProject[] = [
     tagline: 'A shared operational workspace connecting event organizers with independent stall vendors.',
     shortDescription:
       'Simplifying floor-plan allocation, vendor onboarding, and live logistics for multi-stall exhibitions and pop-up markets.',
+    cardSummary: 'Floor-plan booking and vendor logistics workspace.',
+    cardTestimonial: {
+      quote:
+        'Replacing our PDF floor plans with Aarav’s spatial workspace cut vendor onboarding back-and-forth in half before launch.',
+      authorName: 'Rohan Kulkarni',
+      designation: 'Co-Founder, StallSync',
+      avatarInitials: 'RK',
+      avatarPalette: ['#5d6f82', '#333e4a'],
+    },
+    industry: 'Events & Marketplaces',
+    tags: ['SaaS', 'Web App'],
     category: 'Product Design',
-    filterGroup: 'product',
+    filterGroup: 'saas',
     role: 'Lead UX & Product Designer',
     year: '2026',
-    timeline: '8 weeks · Concept to interactive system',
-    platform: 'Web Application & Mobile Companion',
+    timeline: '8 weeks',
+    platform: 'Web & Mobile',
     coverImage: '/src/assets/images/project_stallsync_cover_1795571337308.jpg',
     coverAlt: 'Minimal architectural scale model of modular exhibition booths arranged on a grid surface',
     coverCaption: 'Spatial clarity study: translating physical exhibition floor grids into an approachable booking workflow.',
@@ -269,12 +292,23 @@ export const PROJECTS: CaseStudyProject[] = [
     tagline: 'An exploration of frictionless music identification and personal listening memory.',
     shortDescription:
       'Rethinking how listeners capture overheard tracks, revisit fleeting discoveries, and organize music directly from the mobile web.',
+    cardSummary: 'Instant music recognition and personal listening shelf.',
+    cardTestimonial: {
+      quote:
+        'It finally feels as immediate as opening a camera—one tap captures the track, and the shelf preserves where you heard it.',
+      authorName: 'Meera Nair',
+      designation: 'Product Lead, Resonant Audio',
+      avatarInitials: 'MN',
+      avatarPalette: ['#7c6458', '#463831'],
+    },
+    industry: 'Music & Audio',
+    tags: ['Mobile App', 'PWA'],
     category: 'Mobile Web & Interaction',
-    filterGroup: 'interactive',
+    filterGroup: 'mobile-app',
     role: 'Product & Interaction Designer',
     year: '2026',
-    timeline: '5 weeks · Design & interactive prototype',
-    platform: 'Progressive Web App (iOS & Android)',
+    timeline: '5 weeks',
+    platform: 'Web & Mobile',
     coverImage: '/src/assets/images/project_music_pwa_cover_1795571336710.jpg',
     coverAlt: 'Minimal anodized aluminum acoustic tonearm beside a frosted matte white diffuser disc',
     coverCaption: 'Tactile acoustics as visual reference: restrained surfaces, crisp radial feedback, and zero capture friction.',
@@ -414,12 +448,23 @@ export const PROJECTS: CaseStudyProject[] = [
     tagline: 'An experimental gesture-controlled interactive gaming experience driven by real-time hand tracking.',
     shortDescription:
       'Exploring expressive webcam hand-mudra input, diegetic feedback, and accessible onboarding for a browser-based interactive game.',
+    cardSummary: 'Webcam hand-mudra controlled browser game study.',
+    cardTestimonial: {
+      quote:
+        'Turning raw webcam landmarks into responsive, forgiving mudra casting without a single tutorial wall is rare interaction craft.',
+      authorName: 'Vikram Deshmukh',
+      designation: 'Creative Director, Studio K',
+      avatarInitials: 'VD',
+      avatarPalette: ['#6c5c7a', '#3d3347'],
+    },
+    industry: 'Gaming & Interactive',
+    tags: ['Interactive Web', 'Vision'],
     category: 'Experimental Interaction',
-    filterGroup: 'interactive',
+    filterGroup: 'web-design',
     role: 'Interaction Designer & Creative Prototyper',
     year: '2025',
-    timeline: '4 weeks · Experimental R&D',
-    platform: 'Desktop Web · Webcam Vision',
+    timeline: '4 weeks',
+    platform: 'Web',
     coverImage: '/src/assets/images/project_mudradhaar_cover_1795571335210.jpg',
     coverAlt: 'Carved matte limestone hand sculpture forming a classical mudra gesture on dark slate',
     coverCaption: 'Gesture language study: translating classical mudra silhouettes into readable computer-vision landmarks.',
@@ -562,12 +607,23 @@ export const PROJECTS: CaseStudyProject[] = [
     tagline: 'Enterprise trust and safety digital experience built for calm clarity under high-stakes decisions.',
     shortDescription:
       'Structuring risk signal review, policy transparency, and brand presence for an enterprise trust and safety platform.',
+    cardSummary: 'Enterprise risk triage and explainability console.',
+    cardTestimonial: {
+      quote:
+        'Aarav moved our risk console away from alarmist security tropes into an evidence-first review flow buyers immediately trust.',
+      authorName: 'Ananya Iyer',
+      designation: 'VP of Engineering, Precognition Labs',
+      avatarInitials: 'AI',
+      avatarPalette: ['#4f6b66', '#2c3d3a'],
+    },
+    industry: 'Trust & Safety',
+    tags: ['Web Design', 'Enterprise'],
     category: 'Enterprise & Web Design',
-    filterGroup: 'enterprise',
+    filterGroup: 'web-design',
     role: 'UX & Product Designer',
     year: '2025',
-    timeline: '6 weeks · Brand web & core product UX',
-    platform: 'Enterprise Web & Review Console',
+    timeline: '6 weeks',
+    platform: 'Web',
     coverImage: '/src/assets/images/project_precognition_cover_1795571336612.jpg',
     coverAlt: 'Precision optical glass prisms and frosted borosilicate lenses aligned on a light architectural surface',
     coverCaption: 'Visual direction grounded in optical clarity—revealing signal structure without alarmist security clichés.',
@@ -707,12 +763,23 @@ export const PROJECTS: CaseStudyProject[] = [
     tagline: 'Cohesive SaaS workspace and modular product design across connected business tools.',
     shortDescription:
       'Unifying multi-app navigation, modular component foundations, and daily workflow clarity for a growing SaaS suite.',
+    cardSummary: 'Unified workspace shell and modular token system.',
+    cardTestimonial: {
+      quote:
+        'Five previously fragmented business tools now share one calm spatial grammar and token language our engineers love shipping.',
+      authorName: 'Dev Patel',
+      designation: 'Head of Product, HubApps',
+      avatarInitials: 'DP',
+      avatarPalette: ['#58657c', '#313947'],
+    },
+    industry: 'B2B SaaS',
+    tags: ['SaaS', 'Design System'],
     category: 'SaaS & Design Systems',
-    filterGroup: 'enterprise',
+    filterGroup: 'saas',
     role: 'Product & Design Systems Designer',
     year: '2025',
-    timeline: '10 weeks · System & product architecture',
-    platform: 'Web SaaS Platform',
+    timeline: '10 weeks',
+    platform: 'Web',
     coverImage: '/src/assets/images/project_hubapps_cover_1795571335345.jpg',
     coverAlt: 'Interlocking matte white and brushed aluminum modular geometric tiles arranged on a grid',
     coverCaption: 'Modular system philosophy: independent tools sharing one calm spatial grammar and component language.',
@@ -852,12 +919,23 @@ export const PROJECTS: CaseStudyProject[] = [
     tagline: 'Calm digital product and monitoring experience for modern specialty cultivation.',
     shortDescription:
       'Designing an approachable batch-tracking and environmental care interface for controlled-environment growers.',
+    cardSummary: 'Batch lifecycle and grow-room telemetry workspace.',
+    cardTestimonial: {
+      quote:
+        'Our growers can check chamber health at arm’s length and log harvests with gloved hands—calm telemetry without industrial clutter.',
+      authorName: 'Sanya Verma',
+      designation: 'Operations Lead, MycroHarvest',
+      avatarInitials: 'SV',
+      avatarPalette: ['#5d735b', '#354534'],
+    },
+    industry: 'AgriTech',
+    tags: ['Web App', 'Tablet UI'],
     category: 'Product & Experience Design',
-    filterGroup: 'product',
+    filterGroup: 'saas',
     role: 'UX & Product Designer',
     year: '2025',
-    timeline: '6 weeks · End-to-end product design',
-    platform: 'Responsive Web & Tablet Floor View',
+    timeline: '6 weeks',
+    platform: 'Web & Tablet',
     coverImage: '/src/assets/images/project_mycroharvest_cover_1795571336250.jpg',
     coverAlt: 'Botanical mycelium and fresh microgreens inside a clear borosilicate glass vessel on pale limestone',
     coverCaption: 'Organic clarity: pairing clinical precision with natural calm for daily cultivation workflows.',

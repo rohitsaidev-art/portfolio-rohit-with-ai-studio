@@ -25,17 +25,12 @@ import { useSoundEnabled } from '../utils/useSoundEnabled';
 import { showToast } from '../utils/toast';
 import { EASE_APPLE } from '../utils/motion';
 import { prefersReducedMotion } from '../utils/scroll';
-import {
-  SFChevronRight,
-  SFMagnifyingGlass,
-  SFXmark,
-} from './SFSymbols';
+import { ChevronRight, Search, X } from 'lucide-react';
 
 interface CommandPaletteProps {
   open: boolean;
   onClose: () => void;
   onNavigate: (path: string) => void;
-  onOpenShortlist?: () => void;
   onOpenColophon?: () => void;
 }
 
@@ -56,7 +51,6 @@ export function CommandPalette({
   open,
   onClose,
   onNavigate,
-  onOpenShortlist,
   onOpenColophon,
 }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
@@ -210,18 +204,12 @@ export function CommandPalette({
         return;
       }
 
-      if (action.type === 'open-shortlist') {
-        playTick();
-        onOpenShortlist?.();
-        return;
-      }
-
       if (action.type === 'open-colophon') {
         playTick();
         onOpenColophon?.();
       }
     },
-    [onClose, onNavigate, onOpenShortlist, onOpenColophon, readerPrefs.textSize],
+    [onClose, onNavigate, onOpenColophon, readerPrefs.textSize],
   );
 
   // Keyboard navigation + focus trap within dialog
@@ -322,12 +310,14 @@ export function CommandPalette({
               reduced ? { duration: 0.01 } : { duration: 0.24, ease: EASE_APPLE }
             }
             onClick={(event) => event.stopPropagation()}
-            className="apple-modal flex max-h-[72vh] w-full max-w-[620px] flex-col overflow-hidden rounded-[24px] bg-[var(--apple-surface-elevated)]"
+            className="apple-modal flex max-h-[72vh] w-full max-w-[620px] flex-col overflow-hidden rounded-[20px] bg-[var(--apple-surface-elevated)]"
           >
             {/* Search Input Header */}
             <div className="flex items-center gap-3 border-b border-[var(--apple-separator-subtle)] px-5 py-4">
-              <SFMagnifyingGlass
+              <Search
                 size={17}
+                strokeWidth={1.75}
+                aria-hidden="true"
                 className="shrink-0 text-[var(--apple-label-tertiary)]"
               />
               <input
@@ -358,7 +348,7 @@ export function CommandPalette({
                   aria-label="Clear command search"
                   className="apple-btn-icon h-9 w-9 shrink-0 text-[var(--apple-label-tertiary)] hover:text-[var(--apple-label-primary)] sm:h-7 sm:w-7"
                 >
-                  <SFXmark size={13} />
+                  <X size={13} strokeWidth={2} aria-hidden="true" />
                 </button>
               )}
               <button
@@ -433,8 +423,10 @@ export function CommandPalette({
                                   {item.subtitle}
                                 </p>
                               </div>
-                              <SFChevronRight
+                              <ChevronRight
                                 size={13}
+                                strokeWidth={2}
+                                aria-hidden="true"
                                 className={`shrink-0 ${
                                   selected
                                     ? 'text-white'

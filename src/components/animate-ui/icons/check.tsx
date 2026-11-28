@@ -22,11 +22,11 @@ const animations = {
       },
       animate: {
         pathLength: [0, 1],
-        opacity: [0, 1],
-        scale: [1, 1.1, 1],
+        opacity: [0.4, 1],
+        scale: [0.95, 1],
         transition: {
-          duration: 0.6,
-          ease: 'easeInOut',
+          duration: 0.24,
+          ease: [0.23, 1, 0.32, 1],
         },
       },
     },
@@ -45,7 +45,7 @@ function IconComponent({ size, ...props }: CheckProps) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={2}
+      strokeWidth={1.75}
       strokeLinecap="round"
       strokeLinejoin="round"
       initial="initial"

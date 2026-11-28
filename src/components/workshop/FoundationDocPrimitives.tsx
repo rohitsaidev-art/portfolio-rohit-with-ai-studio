@@ -2,7 +2,8 @@ import { useState, type ReactNode } from 'react';
 import { copyTextToClipboard, type FoundationGapSpec } from '../../utils/foundationsCatalog';
 import { playTick } from '../../utils/soundEngine';
 import { showToast } from '../../utils/toast';
-import { SFCheckmark, SFDocOnDoc, SFXmark } from '../SFSymbols';
+import { Check, Copy, X } from 'lucide-react';
+import { AnimatedCheckIcon } from '../icons/AnimatedLucide';
 
 interface CopyTokenButtonProps {
   value: string;
@@ -65,13 +66,17 @@ export function CopyTokenButton({
         {label ?? value}
       </span>
       {copied ? (
-        <SFCheckmark
+        <AnimatedCheckIcon
           size={12}
+          strokeWidth={2}
+          animate={copied}
           className="shrink-0 text-[var(--apple-blue)]"
         />
       ) : (
-        <SFDocOnDoc
+        <Copy
           size={12}
+          strokeWidth={2}
+          aria-hidden="true"
           className="shrink-0 text-[var(--apple-label-tertiary)]"
         />
       )}
@@ -207,7 +212,7 @@ export function DocumentationStandardsPanel({
             >
               <div className="flex items-start gap-2.5">
                 <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--apple-blue)]/10 text-[var(--apple-link)]">
-                  <SFCheckmark size={11} />
+                  <Check size={12} strokeWidth={2} aria-hidden="true" />
                 </span>
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--apple-link)]">
@@ -220,7 +225,7 @@ export function DocumentationStandardsPanel({
               </div>
               <div className="flex items-start gap-2.5">
                 <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--apple-error)]/10 text-[var(--apple-error)]">
-                  <SFXmark size={11} />
+                  <X size={12} strokeWidth={2} aria-hidden="true" />
                 </span>
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--apple-error)]">
@@ -333,7 +338,7 @@ export function FoundationGapsSection({
                       : 'text-[var(--apple-label-tertiary)]'
                   }`}
                 >
-                  {isFixed && <SFCheckmark size={11} />}
+                  {isFixed && <Check size={12} strokeWidth={2} aria-hidden="true" />}
                   <span>
                     {isFixed
                       ? 'Resolved · Stage 2.5'

@@ -196,10 +196,12 @@ export function AudioWaveform({
 export function MiniAudioEqualizer({
   active,
   muted = false,
+  accentWhenIdle = false,
   className = '',
 }: {
   active: boolean;
   muted?: boolean;
+  accentWhenIdle?: boolean;
   className?: string;
 }) {
   const reduced = prefersReducedMotion();
@@ -240,7 +242,7 @@ export function MiniAudioEqualizer({
           key={i}
           style={{ height: `${h}%` }}
           className={`w-[2px] rounded-full transition-colors duration-200 ${
-            active && !muted
+            (active || accentWhenIdle) && !muted
               ? 'bg-[var(--apple-blue)]'
               : 'bg-[var(--apple-label-tertiary)]'
           }`}

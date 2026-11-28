@@ -2,13 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { EASE_APPLE } from '../utils/motion';
 import { playTick } from '../utils/soundEngine';
-import {
-  SFChevronLeft,
-  SFChevronRight,
-  SFXmark,
-  SFZoomIn,
-  SFZoomOut,
-} from './SFSymbols';
+import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut } from 'lucide-react';
 
 export interface LightboxImage {
   src: string;
@@ -224,7 +218,7 @@ export function Lightbox({
             exit={{ opacity: 0, scale: 0.97, y: 8 }}
             transition={{ duration: 0.34, ease: EASE_APPLE }}
             onClick={(event) => event.stopPropagation()}
-            className="apple-modal relative flex max-h-[92vh] w-full max-w-[1140px] flex-col overflow-hidden rounded-[28px] bg-[var(--apple-surface-elevated)]"
+            className="apple-modal relative flex max-h-[92vh] w-full max-w-[1140px] flex-col overflow-hidden rounded-[20px] bg-[var(--apple-surface-elevated)]"
           >
             {/* Header with Zoom Controls */}
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--apple-separator-subtle)] px-5 py-3.5 sm:px-7">
@@ -256,7 +250,7 @@ export function Lightbox({
                     title="Zoom out (-)"
                     className="apple-btn-icon h-9 w-9 text-[var(--apple-label-primary)] disabled:opacity-35 sm:h-7 sm:w-7"
                   >
-                    <SFZoomOut size={14} />
+                    <ZoomOut size={14} strokeWidth={1.75} aria-hidden="true" />
                   </button>
                   <button
                     type="button"
@@ -274,7 +268,7 @@ export function Lightbox({
                     title="Zoom in (+)"
                     className="apple-btn-icon h-9 w-9 text-[var(--apple-label-primary)] disabled:opacity-35 sm:h-7 sm:w-7"
                   >
-                    <SFZoomIn size={14} />
+                    <ZoomIn size={14} strokeWidth={1.75} aria-hidden="true" />
                   </button>
                 </div>
 
@@ -285,7 +279,7 @@ export function Lightbox({
                   aria-label="Close image viewer"
                   className="apple-btn-icon h-11 w-11 bg-[var(--apple-control-tonal)] text-[var(--apple-label-primary)] hover:bg-[var(--apple-control-tonal-hover)] sm:h-9 sm:w-9"
                 >
-                  <SFXmark size={15} />
+                  <X size={15} strokeWidth={1.75} aria-hidden="true" />
                 </button>
               </div>
             </div>
@@ -344,7 +338,7 @@ export function Lightbox({
                     aria-label="Previous image"
                     className="apple-pill-shadow absolute left-4 inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--apple-surface-elevated)] text-[var(--apple-label-primary)] transition-transform duration-150 hover:scale-105 active:scale-95 sm:left-5"
                   >
-                    <SFChevronLeft size={18} />
+                    <ChevronLeft size={18} strokeWidth={1.75} aria-hidden="true" />
                   </button>
                   <button
                     type="button"
@@ -355,7 +349,7 @@ export function Lightbox({
                     aria-label="Next image"
                     className="apple-pill-shadow absolute right-4 inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--apple-surface-elevated)] text-[var(--apple-label-primary)] transition-transform duration-150 hover:scale-105 active:scale-95 sm:right-5"
                   >
-                    <SFChevronRight size={18} />
+                    <ChevronRight size={18} strokeWidth={1.75} aria-hidden="true" />
                   </button>
                 </>
               )}

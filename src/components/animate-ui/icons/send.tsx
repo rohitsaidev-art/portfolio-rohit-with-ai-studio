@@ -21,21 +21,12 @@ const animations = {
         y: 0,
       },
       animate: {
-        scale: [1, 0.8, 1, 1, 1],
-        x: [0, '-10%', '100%', '-125%', 0],
-        y: [0, '10%', '-100%', '125%', 0],
+        scale: [1, 0.96, 1],
+        x: [0, 2.5, 0],
+        y: [0, -2.5, 0],
         transition: {
-          default: { ease: 'easeInOut', duration: 1.2 },
-          x: {
-            ease: 'easeInOut',
-            duration: 1.2,
-            times: [0, 0.25, 0.5, 0.5, 1],
-          },
-          y: {
-            ease: 'easeInOut',
-            duration: 1.2,
-            times: [0, 0.25, 0.5, 0.5, 1],
-          },
+          duration: 0.24,
+          ease: [0.23, 1, 0.32, 1],
         },
       },
     },
@@ -56,7 +47,7 @@ function IconComponent({ size, ...props }: SendProps) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={2}
+      strokeWidth={1.75}
       strokeLinecap="round"
       strokeLinejoin="round"
       {...props}

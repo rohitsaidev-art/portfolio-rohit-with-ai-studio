@@ -6,12 +6,7 @@ import { EASE_APPLE } from '../utils/motion';
 import { prefersReducedMotion } from '../utils/scroll';
 import { playTick } from '../utils/soundEngine';
 import { useDialogFocusTrap } from '../utils/useFocusTrap';
-import {
-  SFHeadphones,
-  SFListBullet,
-  SFWaveform,
-  SFXmark,
-} from './SFSymbols';
+import { AudioLines, Headphones, List, X } from 'lucide-react';
 
 interface MobileReadingBarProps {
   chapters: readonly TocChapter[];
@@ -108,7 +103,7 @@ export function MobileReadingBar({
                   : { duration: 0.24, ease: EASE_APPLE }
               }
               onClick={(event) => event.stopPropagation()}
-              className="apple-modal w-full rounded-[24px] bg-[var(--apple-surface-elevated)] p-4"
+              className="apple-modal w-full rounded-[20px] bg-[var(--apple-surface-elevated)] p-4"
             >
               <div className="flex items-center justify-between border-b border-[var(--apple-separator-subtle)] pb-3">
                 <div>
@@ -126,7 +121,7 @@ export function MobileReadingBar({
                   aria-label="Close chapter picker"
                   className="apple-btn-icon h-11 w-11 bg-[var(--apple-control-tonal)] text-[var(--apple-label-primary)]"
                 >
-                  <SFXmark size={14} />
+                  <X size={14} strokeWidth={1.75} aria-hidden="true" />
                 </button>
               </div>
 
@@ -156,8 +151,10 @@ export function MobileReadingBar({
                         <span className="truncate">{chapter.label}</span>
                       </span>
                       {isNarrating && (
-                        <SFWaveform
+                        <AudioLines
                           size={14}
+                          strokeWidth={1.75}
+                          aria-hidden="true"
                           className="shrink-0 text-[var(--apple-link)]"
                         />
                       )}
@@ -188,8 +185,10 @@ export function MobileReadingBar({
             aria-label="Open chapter picker"
             className="flex min-w-0 flex-1 items-center gap-2.5 rounded-full px-2.5 py-1.5 text-left transition-colors hover:bg-[var(--apple-control-hover)]"
           >
-            <SFListBullet
+            <List
               size={16}
+              strokeWidth={1.75}
+              aria-hidden="true"
               className="shrink-0 text-[var(--apple-link)]"
             />
             <div className="min-w-0 flex-1">
@@ -230,9 +229,9 @@ export function MobileReadingBar({
             }`}
           >
             {isAudioPlaying ? (
-              <SFWaveform size={13} />
+              <AudioLines size={13} strokeWidth={2} aria-hidden="true" />
             ) : (
-              <SFHeadphones size={13} />
+              <Headphones size={13} strokeWidth={2} aria-hidden="true" />
             )}
             <span>{isAudioPlaying ? 'Listening' : 'Listen'}</span>
           </button>

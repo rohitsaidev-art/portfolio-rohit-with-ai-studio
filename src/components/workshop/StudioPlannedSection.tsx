@@ -1,6 +1,6 @@
 import type { StudioNavDestination } from '../../utils/studioNavigation';
 import { playTick } from '../../utils/soundEngine';
-import { SFChevronRight } from '../SFSymbols';
+import { ChevronRight } from 'lucide-react';
 
 interface StudioPlannedSectionProps {
   destination: StudioNavDestination;
@@ -87,7 +87,7 @@ export function StudioPlannedSection({
                 className="apple-link inline-flex items-center gap-1.5 text-[14px] font-medium text-[var(--apple-link)] hover:underline"
               >
                 <span>{rel.label}</span>
-                <SFChevronRight size={13} />
+                <ChevronRight size={13} strokeWidth={2} aria-hidden="true" />
               </a>
             ))}
           </div>

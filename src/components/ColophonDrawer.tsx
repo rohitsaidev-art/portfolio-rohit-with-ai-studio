@@ -4,7 +4,7 @@ import { SITE_CONFIG } from '../data/site';
 import { EASE_APPLE } from '../utils/motion';
 import { prefersReducedMotion } from '../utils/scroll';
 import { useDialogFocusTrap } from '../utils/useFocusTrap';
-import { SFXmark } from './SFSymbols';
+import { X } from 'lucide-react';
 
 interface ColophonDrawerProps {
   open: boolean;
@@ -27,11 +27,11 @@ const COLOPHON_SECTIONS = [
     index: '02',
     title: 'Surfaces, Elevation & Approved Tokens',
     summary:
-      'Production runs strictly on the verified Cool Neutral Light (#FFFFFF / #F5F5F7) and Calibrated Dark (#0B0B0D / #151518) palette with Apple Blue accents.',
+      'Production runs on Warm Gallery Paper (#FAF8F6 / #FFFFFF) in Light mode and Warm Obsidian (#11100E / #1D1B18) in Dark mode, paired with editorial ink CTAs, refined cobalt interactive accents, and a restrained warm editorial accent.',
     details: [
-      'Three-tier physical shadow stack: a subtle inset top highlight, a 0.5px micro-contact ring, and wide ambient diffusion calibrated independently for light and dark surfaces.',
+      'Architectural elevation pairs a crisp 0.5px hairline border with a tightened two-tier ambient shadow stack—reserving elevated cards for interactive case studies, forms, and overlays while text sections breathe between horizontal rules.',
       'All foreground label, link, button, and error tokens are calibrated to pass WCAG 2.2 AA (≥ 4.5:1) contrast ratios across primary, secondary, and elevated surfaces.',
-      'Unapproved visual explorations (such as organic textures, perimeter glows, parallax, or warm palettes) remain strictly excluded from production unless explicitly promoted.',
+      'Navigation glass uses an opaque baseline with progressive @supports (backdrop-filter) frosting and @media (prefers-reduced-transparency: reduce) solid overrides, while all interface icons run on a unified Lucide system at 1.75 default stroke weight.',
     ],
   },
   {
@@ -134,7 +134,7 @@ export function ColophonDrawer({ open, onClose }: ColophonDrawerProps) {
                 aria-label="Close colophon drawer"
                 className="apple-btn-icon h-11 w-11 shrink-0 bg-[var(--apple-control-tonal)] text-[var(--apple-label-primary)] hover:bg-[var(--apple-control-tonal-hover)] sm:h-9 sm:w-9"
               >
-                <SFXmark size={15} />
+                <X size={15} strokeWidth={1.75} aria-hidden="true" />
               </button>
             </div>
 

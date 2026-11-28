@@ -16,7 +16,6 @@ export type CommandItemAction =
   | { type: 'toggle-sound' }
   | { type: 'toggle-text-size' }
   | { type: 'toggle-focus-reading' }
-  | { type: 'open-shortlist' }
   | { type: 'open-colophon' };
 
 export interface CommandPaletteItem {
@@ -47,12 +46,20 @@ export function buildPublicCommandPaletteItems(
   // 1. Public Pages
   items.push(
     {
+      id: 'page-home',
+      group: 'Pages',
+      title: 'Home',
+      subtitle: 'Introduction & featured case studies',
+      keywords: 'home start landing portfolio featured',
+      action: { type: 'navigate', path: '/' },
+    },
+    {
       id: 'page-work',
       group: 'Pages',
-      title: 'Selected Work',
-      subtitle: 'Portfolio showcase & case study index',
-      keywords: 'home work portfolio showcase projects',
-      action: { type: 'navigate', path: '/' },
+      title: 'Work',
+      subtitle: 'Complete case study archive with filters & sorting',
+      keywords: 'work portfolio showcase projects archive case studies',
+      action: { type: 'navigate', path: '/work' },
     },
     {
       id: 'page-notes',
@@ -198,14 +205,6 @@ export function buildPublicCommandPaletteItems(
       subtitle: 'Dim peripheral chrome during long-form reading',
       keywords: 'focus reading mode calm reader comfort aa',
       action: { type: 'toggle-focus-reading' },
-    },
-    {
-      id: 'action-open-shortlist',
-      group: 'Actions',
-      title: 'Open Recruiter Shortlist',
-      subtitle: 'Review saved case studies and copy a shareable shortlist link',
-      keywords: 'shortlist bookmark save share recruiter hiring projects',
-      action: { type: 'open-shortlist' },
     },
     {
       id: 'action-open-colophon',

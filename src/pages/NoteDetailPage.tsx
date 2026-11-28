@@ -1,11 +1,11 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useScroll, useSpring } from 'motion/react';
 import { JOURNAL_NOTES, type JournalArticle } from '../data/notes';
 import { AudioPlayer } from '../components/AudioPlayer';
 import { MiniAudioEqualizer } from '../components/AudioWaveform';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { ReaderComfortPopover } from '../components/ReaderComfortPopover';
-import { SFChevronLeft, SFChevronRight } from '../components/SFSymbols';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { getNoteMetrics, getRelatedNotes } from '../utils/portfolio';
 import type { NarrationSegment } from '../utils/readAloud';
 import { scrollToElementById } from '../utils/scroll';
@@ -27,6 +27,23 @@ export function NoteDetailPage({ article, onNavigate }: NoteDetailPageProps) {
     null,
   );
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const [isBeyondArticle, setIsBeyondArticle] = useState(false);
+  const articleEndRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const endEl = articleEndRef.current;
+      if (endEl) {
+        const rect = endEl.getBoundingClientRect();
+        setIsBeyondArticle(rect.top <= window.innerHeight * 0.65);
+      } else {
+        setIsBeyondArticle(false);
+      }
+    };
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [article.slug]);
 
   const { scrollYProgress } = useScroll();
   const smoothProgress = useSpring(scrollYProgress, {
@@ -83,23 +100,20 @@ export function NoteDetailPage({ article, onNavigate }: NoteDetailPageProps) {
       </div>
 
       {/* Article Header */}
-      <header className="mx-auto max-w-[820px] px-5 pb-12 pt-12 sm:px-8 sm:pb-14 sm:pt-16">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Breadcrumbs
-            items={[
-              { label: 'Notes', href: '/notes' },
-              { label: article.title },
-            ]}
-            onNavigate={onNavigate}
-          />
-          <ReaderComfortPopover align="right" />
-        </div>
+      <header className="mx-auto max-w-[820px] px-5 pb-10 pt-5 sm:px-8 sm:pb-12 sm:pt-6">
+        <Breadcrumbs
+          items={[
+            { label: 'Notes', href: '/notes' },
+            { label: article.title },
+          ]}
+          onNavigate={onNavigate}
+        />
 
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.48, ease: EASE_APPLE }}
-          className="mt-8"
+          className="mt-7 sm:mt-9"
         >
           <div className="type-eyebrow flex flex-wrap items-center gap-x-2 text-[var(--apple-label-secondary)]">
             {isDraft && (
@@ -137,20 +151,28 @@ export function NoteDetailPage({ article, onNavigate }: NoteDetailPageProps) {
           </div>
         </motion.div>
 
-        {/* Reusable Apple HIG AudioPlayer integrated at top of article */}
-        <AudioPlayer
-          title={article.title}
-          segments={narrationSegments}
-          idleLabel={isDraft ? 'Listen to draft note' : 'Listen to article'}
-          helperText="Drag the timeline or tap the waveform to jump straight to that section of the note."
-          onActiveSectionChange={setNarratingSectionId}
-          onJumpToSection={scrollToSection}
-          onPlaybackChange={setIsAudioPlaying}
-        />
+        {/* Simpler Contextual AudioPlayer integrated at top of article */}
+        <div className="mt-8">
+          <AudioPlayer
+            variant="contextual-floating"
+            contextualDisplayMode="inline"
+            autoFloatOnScroll
+            compressed={isBeyondArticle}
+            title={article.title}
+            segments={narrationSegments}
+            idleLabel={isDraft ? 'Listen to draft note' : 'Listen to article'}
+            onActiveSectionChange={setNarratingSectionId}
+            onJumpToSection={scrollToSection}
+            onPlaybackChange={setIsAudioPlaying}
+          />
+        </div>
       </header>
 
       {/* Comfortable Editorial Prose Body */}
       <div className="mx-auto max-w-[820px] px-5 pb-24 pt-2 sm:px-8 sm:pb-28">
+        <div className="mb-5 flex items-center justify-end print:hidden">
+          <ReaderComfortPopover align="right" />
+        </div>
         <div className="space-y-16">
           {article.sections.map((section) => {
             const isBeingNarrated = narratingSectionId === section.id;
@@ -177,7 +199,7 @@ export function NoteDetailPage({ article, onNavigate }: NoteDetailPageProps) {
                     {section.num}
                   </p>
                   {isBeingNarrated && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--apple-blue)]/10 px-2.5 py-0.5 text-[11px] font-semibold tracking-[-0.01em] text-[var(--apple-link)]">
+                    <span className="inline-flex items-center gap-1.5 text-[11.5px] font-medium tracking-[-0.008em] text-[var(--apple-link)]">
                       <MiniAudioEqualizer active={isAudioPlaying} />
                       <span>Listening</span>
                     </span>
@@ -194,7 +216,7 @@ export function NoteDetailPage({ article, onNavigate }: NoteDetailPageProps) {
                 </div>
 
                 {section.callout && (
-                  <div className="mt-8 rounded-[24px] bg-[var(--apple-bg-secondary)] px-7 py-6 sm:px-8 sm:py-7">
+                  <div className="mt-8 rounded-[20px] bg-[var(--apple-bg-secondary)] px-7 py-6 sm:px-8 sm:py-7">
                     <p className="font-display measure-lead text-[19px] font-medium leading-[1.48] tracking-[-0.018em] text-[var(--apple-label-primary)] sm:text-[20px]">
                       “{section.callout}”
                     </p>
@@ -204,6 +226,8 @@ export function NoteDetailPage({ article, onNavigate }: NoteDetailPageProps) {
             );
           })}
         </div>
+
+        <div ref={articleEndRef} aria-hidden="true" className="h-px w-full" />
 
         {/* Related Articles */}
         {relatedNotes.length > 0 && (
@@ -226,8 +250,10 @@ export function NoteDetailPage({ article, onNavigate }: NoteDetailPageProps) {
                 onClick={(e) => handleLinkClick(e, '/notes')}
                 className="apple-link group inline-flex items-center gap-1 text-[14.5px] font-medium text-[var(--apple-link)]"
               >
-                <SFChevronLeft
+                <ChevronLeft
                   size={14}
+                  strokeWidth={1.75}
+                  aria-hidden="true"
                   className="transition-transform duration-200 group-hover:-translate-x-0.5"
                 />
                 <span className="group-hover:underline">All notes</span>
@@ -244,7 +270,7 @@ export function NoteDetailPage({ article, onNavigate }: NoteDetailPageProps) {
                     key={related.slug}
                     href={relHref}
                     onClick={(e) => handleLinkClick(e, relHref)}
-                    className="apple-card group flex flex-col justify-between rounded-[24px] p-6 sm:p-7"
+                    className="apple-card group flex flex-col justify-between rounded-[20px] p-6 sm:p-7"
                   >
                     <div>
                       <p className="type-caption flex flex-wrap items-center gap-x-2 text-[var(--apple-label-tertiary)]">
@@ -278,8 +304,10 @@ export function NoteDetailPage({ article, onNavigate }: NoteDetailPageProps) {
                       <span className="group-hover:underline">
                         {relIsDraft ? 'Read draft' : 'Read note'}
                       </span>
-                      <SFChevronRight
+                      <ChevronRight
                         size={14}
+                        strokeWidth={1.75}
+                        aria-hidden="true"
                         className="transition-transform duration-200 group-hover:translate-x-0.5"
                       />
                     </div>

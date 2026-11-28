@@ -66,9 +66,10 @@ export interface EffectTrackConfig {
 
 export interface DecisionLogEntry {
   id: string;
-  subjectType: 'effect-track' | 'palette' | 'appearance' | 'toc';
+  subjectType: 'effect-track' | 'palette' | 'appearance' | 'toc' | 'experiment';
   subjectId: string;
   trackId?: EffectTrackId;
+  experimentId?: string;
   title: string;
   variantLabel: string;
   status: DecisionStatus;
@@ -470,8 +471,10 @@ export function isValidDecisionLogEntry(value: unknown): value is DecisionLogEnt
     (v.subjectType === 'effect-track' ||
       v.subjectType === 'palette' ||
       v.subjectType === 'appearance' ||
-      v.subjectType === 'toc') &&
+      v.subjectType === 'toc' ||
+      v.subjectType === 'experiment') &&
     typeof v.subjectId === 'string' &&
+    (v.experimentId === undefined || typeof v.experimentId === 'string') &&
     typeof v.title === 'string' &&
     typeof v.variantLabel === 'string' &&
     isValidDecisionStatus(v.status) &&
@@ -559,6 +562,19 @@ export function parseImportedDecisionLogJson(
 ): { ok: true; entries: DecisionLogEntry[] } | { ok: false; error: string } {
   try {
     const parsed = JSON.parse(rawJson) as unknown;
+    if (
+      parsed &&
+      typeof parsed === 'object' &&
+      !Array.isArray(parsed) &&
+      (parsed as { domain?: unknown }).domain === 'studio-experiments'
+    ) {
+      return {
+        ok: false,
+        error:
+          'This file is a Studio Experiments export. Import it inside Exploration → Experiments & Versions instead.',
+      };
+    }
+
     const list = Array.isArray(parsed)
       ? parsed
       : parsed && typeof parsed === 'object' && Array.isArray((parsed as { entries?: unknown }).entries)
@@ -613,6 +629,7 @@ export function generateTokenPromotionMarkdown(
       `### ${entry.title} — ${entry.variantLabel}`,
       `- **Status**: ${STATUS_LABELS[entry.status]}`,
       `- **Context**: ${entry.paletteContext === 'cool' ? 'Cool Neutral' : 'Warm Neutral'} · ${entry.themeContext === 'dark' ? 'Dark Mode' : 'Light Mode'}`,
+      ...(entry.experimentId ? [`- **Linked Experiment**: \`${entry.experimentId}\``] : []),
       `- **Parameters**: ${params || 'Default'}`,
       `- **Rationale**: ${entry.rationale.trim() || 'No rationale recorded yet.'}`,
       `- **Updated**: ${entry.updatedAt}`,

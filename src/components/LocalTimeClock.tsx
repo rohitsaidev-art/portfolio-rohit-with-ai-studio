@@ -3,7 +3,7 @@ import {
   getHyderabadClockSnapshot,
   type HyderabadClockSnapshot,
 } from '../utils/localTime';
-import { SFClock } from './SFSymbols';
+import { Clock } from 'lucide-react';
 
 interface LocalTimeClockProps {
   variant?: 'inline' | 'card';
@@ -28,7 +28,7 @@ export function LocalTimeClock({ variant = 'inline' }: LocalTimeClockProps) {
     return (
       <div className="mt-4 flex items-center justify-between gap-3 rounded-[16px] bg-[var(--apple-bg-secondary)] px-4 py-3">
         <div className="flex items-center gap-2.5">
-          <SFClock size={15} className="shrink-0 text-[var(--apple-link)]" />
+          <Clock size={15} strokeWidth={1.75} aria-hidden="true" className="shrink-0 text-[var(--apple-link)]" />
           <div>
             <p className="text-[12px] font-medium text-[var(--apple-label-primary)]">
               Hyderabad local time
@@ -52,7 +52,7 @@ export function LocalTimeClock({ variant = 'inline' }: LocalTimeClockProps) {
 
   return (
     <div className="type-footnote inline-flex flex-wrap items-center gap-2 font-normal text-[var(--apple-label-secondary)]">
-      <SFClock size={14} className="shrink-0 text-[var(--apple-link)]" />
+      <Clock size={14} strokeWidth={1.75} aria-hidden="true" className="shrink-0 text-[var(--apple-link)]" />
       <span>Hyderabad</span>
       <span aria-hidden="true" className="text-[var(--apple-label-tertiary)]">
         ·

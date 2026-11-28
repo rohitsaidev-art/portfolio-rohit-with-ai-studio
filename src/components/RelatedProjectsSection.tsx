@@ -1,6 +1,6 @@
 import type { CaseStudyProject } from '../data/projects';
 import type { RelatedProjectRecommendation } from '../utils/portfolio';
-import { SFChevronRight } from './SFSymbols';
+import { ChevronRight } from 'lucide-react';
 
 interface RelatedProjectsSectionProps {
   recommendations: readonly RelatedProjectRecommendation<CaseStudyProject>[];
@@ -55,7 +55,7 @@ export function RelatedProjectsSection({
               key={project.slug}
               href={href}
               onClick={(e) => handleClick(e, href)}
-              className="apple-card group flex flex-col overflow-hidden rounded-[26px]"
+              className="apple-card group flex flex-col overflow-hidden rounded-[20px]"
             >
               <div className="aspect-[16/10] w-full overflow-hidden bg-[var(--apple-bg-secondary)]">
                 <img
@@ -95,8 +95,10 @@ export function RelatedProjectsSection({
 
                 <div className="mt-5 inline-flex items-center gap-1 text-[14px] font-medium tracking-[-0.012em] text-[var(--apple-link)]">
                   <span className="group-hover:underline">Read case study</span>
-                  <SFChevronRight
+                  <ChevronRight
                     size={14}
+                    strokeWidth={1.75}
+                    aria-hidden="true"
                     className="transition-transform duration-200 group-hover:translate-x-0.5"
                   />
                 </div>

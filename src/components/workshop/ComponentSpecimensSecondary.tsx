@@ -11,27 +11,46 @@ import { AudioWaveform, MiniAudioEqualizer } from '../AudioWaveform';
 import { BeforeAfterComparator } from '../BeforeAfterComparator';
 import { CaseStudyDiagram } from '../CaseStudyDiagrams';
 import { CaseStudyPrototype } from '../CaseStudyPrototypes';
+import {
+  CASSETTE_THEMES,
+  CassettePlayer,
+  type CassetteChapter,
+  type CassettePlayerVariant,
+} from '../CassettePlayer';
+import {
+  CASSETTE_DEMO_TRACKS,
+  STALLSYNC_CASSETTE_CHAPTERS,
+  getSynthesizedTrackUrl,
+} from '../../utils/cassetteSynthAudio';
+import {
+  IPodPlayer,
+  type IPodSize,
+  type IPodTheme,
+} from '../IPodPlayer';
+import {
+  IPodClassicV2,
+  type IPodWheelCaptureMode,
+} from '../ipod/IPodClassicV2';
+import type { IPodMetalFinish } from '../ipod/IPodWebGLShell';
+import { InteractiveBookSpecimen } from './InteractiveBookSpecimen';
 import { ColophonDrawer } from '../ColophonDrawer';
 import { Lightbox, type LightboxImage } from '../Lightbox';
 import { LocalTimeClock } from '../LocalTimeClock';
 import { ReaderComfortPopover } from '../ReaderComfortPopover';
 import {
-  SFBookmark,
-  SFBookmarkFill,
-  SFCheckmark,
-  SFCheckmarkCircleFill,
-  SFChevronDown,
-  SFChevronRight,
-  SFExclamationTriangle,
-  SFExpand,
-  SFHeadphones,
-  SFInfoCircle,
-  SFListBullet,
-  SFReset,
-  SFWaveform,
-  SFXmark,
-} from '../SFSymbols';
-import { ShortlistDrawer } from '../ShortlistDrawer';
+  AlertTriangle,
+  AudioWaveform as WaveformIcon,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  Headphones,
+  Info,
+  List,
+  Maximize2,
+  RotateCcw,
+  X,
+} from 'lucide-react';
 import type { SpecimenRenderProps } from './ComponentSpecimensPrimary';
 
 const SAMPLE_NARRATION: NarrationSegment[] = [
@@ -44,8 +63,32 @@ const SAMPLE_NARRATION: NarrationSegment[] = [
   {
     id: 'lib-seg-2',
     num: '02',
-    title: 'Spatial Architecture',
+    title: 'The Challenge',
+    text: 'Static spreadsheets and floor plan PDFs broke down whenever booth assignments changed mid-setup.',
+  },
+  {
+    id: 'lib-seg-3',
+    num: '03',
+    title: 'Understanding',
     text: 'Organizers and vendors inspect the same booth grid with tailored action affordances.',
+  },
+  {
+    id: 'lib-seg-4',
+    num: '04',
+    title: 'Design Approach',
+    text: 'A calm spatial booking workspace anchors availability, power specs, and load-in windows to each stall.',
+  },
+  {
+    id: 'lib-seg-5',
+    num: '05',
+    title: 'Exploration',
+    text: 'Iterative floor-plan density studies balanced legibility across desktop planning and mobile check-in.',
+  },
+  {
+    id: 'lib-seg-6',
+    num: '06',
+    title: 'The Solution',
+    text: 'Real-time allocation state keeps both sides synchronized without manual messaging threads.',
   },
 ];
 
@@ -98,64 +141,31 @@ function MiniChoiceGroup<T extends string>({
 }
 
 /* ==========================================================================
-   E1. Slide-Over Drawers (Real ShortlistDrawer & ColophonDrawer)
+   E1. Slide-Over Drawers (Real ColophonDrawer)
    ========================================================================== */
-function SlideOverDrawersSpecimen({
-  onPreviewNavigate,
-}: {
-  onPreviewNavigate: (path: string) => void;
-}) {
-  const [shortlistOpen, setShortlistOpen] = useState(false);
+function SlideOverDrawersSpecimen() {
   const [colophonOpen, setColophonOpen] = useState(false);
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="apple-surface-subtle rounded-[20px] p-5">
-          <p className="type-caption text-[var(--apple-link)]">ShortlistDrawer</p>
-          <p className="type-headline mt-1.5">Recruiter Shortlist</p>
-          <p className="type-footnote mt-1 font-normal text-[var(--apple-label-secondary)]">
-            440px right rail on desktop, bottom sheet on mobile, with live shareable URL builder and focus trap.
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              playTick();
-              setShortlistOpen(true);
-            }}
-            className="apple-btn-primary mt-4 !min-h-[38px] !px-4 !text-[13.5px]"
-          >
-            Launch ShortlistDrawer
-          </button>
-        </div>
-
-        <div className="apple-surface-subtle rounded-[20px] p-5">
-          <p className="type-caption text-[var(--apple-link)]">ColophonDrawer</p>
-          <p className="type-headline mt-1.5">Craft Colophon</p>
-          <p className="type-footnote mt-1 font-normal text-[var(--apple-label-secondary)]">
-            520px editorial drawer documenting approved production typography, elevation, motion, and sound specs.
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              playTick();
-              setColophonOpen(true);
-            }}
-            className="apple-btn-tonal mt-4 !min-h-[38px] !px-4 !text-[13.5px]"
-          >
-            Launch ColophonDrawer
-          </button>
-        </div>
+      <div className="apple-surface-subtle max-w-[480px] rounded-[20px] p-5">
+        <p className="type-caption text-[var(--apple-link)]">ColophonDrawer</p>
+        <p className="type-headline mt-1.5">Craft Colophon</p>
+        <p className="type-footnote mt-1 font-normal text-[var(--apple-label-secondary)]">
+          520px editorial slide-over drawer documenting approved production typography, elevation, motion, and sound specs with keyboard focus trap.
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            playTick();
+            setColophonOpen(true);
+          }}
+          className="apple-btn-primary mt-4 !min-h-[38px] !px-4 !text-[13.5px]"
+        >
+          Launch ColophonDrawer
+        </button>
       </div>
 
-      <ShortlistDrawer
-        open={shortlistOpen}
-        onClose={() => setShortlistOpen(false)}
-        onNavigate={(path) => {
-          setShortlistOpen(false);
-          onPreviewNavigate(path);
-        }}
-      />
       <ColophonDrawer
         open={colophonOpen}
         onClose={() => setColophonOpen(false)}
@@ -202,7 +212,7 @@ function LightboxSpecimen() {
                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
               />
               <span className="apple-ios-bar absolute bottom-2.5 right-2.5 inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--apple-label-primary)]">
-                <SFExpand size={13} />
+                <Maximize2 size={13} strokeWidth={2} aria-hidden="true" />
               </span>
             </div>
             <div className="p-3.5">
@@ -269,8 +279,10 @@ function DisclosureAccordionSpecimen() {
                 aria-hidden="true"
                 className="apple-surface-subtle mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
               >
-                <SFChevronDown
+                <ChevronDown
                   size={14}
+                  strokeWidth={1.75}
+                  aria-hidden="true"
                   className={`transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
                     isOpen
                       ? 'rotate-180 text-[var(--apple-blue)]'
@@ -376,7 +388,7 @@ function MobileBottomSheetSpecimen() {
                   aria-label="Close specimen chapter sheet"
                   className="apple-btn-icon h-9 w-9 bg-[var(--apple-control-tonal)] text-[var(--apple-label-primary)]"
                 >
-                  <SFXmark size={13} />
+                  <X size={13} strokeWidth={2} aria-hidden="true" />
                 </button>
               </div>
               <div className="mt-2.5 space-y-1">
@@ -401,7 +413,7 @@ function MobileBottomSheetSpecimen() {
                         <span>{ch.label}</span>
                       </span>
                       {active && audioPlaying && (
-                        <SFWaveform size={13} className="text-[var(--apple-link)]" />
+                        <WaveformIcon size={13} strokeWidth={2} aria-hidden="true" className="text-[var(--apple-link)]" />
                       )}
                     </button>
                   );
@@ -421,7 +433,7 @@ function MobileBottomSheetSpecimen() {
               }}
               className="flex min-w-0 flex-1 items-center gap-2 rounded-full px-2 py-1 text-left"
             >
-              <SFListBullet size={15} className="shrink-0 text-[var(--apple-link)]" />
+              <List size={15} strokeWidth={1.75} aria-hidden="true" className="shrink-0 text-[var(--apple-link)]" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[12.5px] font-semibold text-[var(--apple-label-primary)]">
                   {current.num} · {current.label}
@@ -451,7 +463,11 @@ function MobileBottomSheetSpecimen() {
                   : 'bg-[var(--apple-control-tonal)] text-[var(--apple-label-primary)]'
               }`}
             >
-              {audioPlaying ? <SFWaveform size={12} /> : <SFHeadphones size={12} />}
+              {audioPlaying ? (
+                <WaveformIcon size={12} strokeWidth={2} aria-hidden="true" />
+              ) : (
+                <Headphones size={12} strokeWidth={2} aria-hidden="true" />
+              )}
               <span>{audioPlaying ? 'Listening' : 'Listen'}</span>
             </button>
           </div>
@@ -487,7 +503,7 @@ function ToastSpecimen() {
             showToast({
               message:
                 tone === 'success'
-                  ? 'Added StallSync to shortlist'
+                  ? 'Copied email address'
                   : 'Switched to 2-Min Skim',
               tone,
             });
@@ -505,13 +521,13 @@ function ToastSpecimen() {
           className="apple-ios-bar flex max-w-[420px] items-center gap-2.5 rounded-full py-2.5 pl-4 pr-2.5 text-[13.5px] font-medium tracking-[-0.01em] text-[var(--apple-label-primary)]"
         >
           {tone === 'success' ? (
-            <SFCheckmarkCircleFill size={16} className="shrink-0 text-[var(--apple-blue)]" />
+            <CheckCircle2 size={16} strokeWidth={1.75} aria-hidden="true" className="shrink-0 text-[var(--apple-blue)]" />
           ) : (
             <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full bg-[var(--apple-blue)]" />
           )}
           <span className="truncate">
             {tone === 'success'
-              ? 'Added StallSync to shortlist'
+              ? 'Copied email address'
               : 'Switched to 2-Min Skim'}
           </span>
           <button
@@ -520,7 +536,7 @@ function ToastSpecimen() {
             onClick={() => playTick()}
             className="apple-btn-icon ml-0.5 h-7 w-7 shrink-0 text-[var(--apple-label-tertiary)] hover:text-[var(--apple-label-primary)]"
           >
-            <SFXmark size={12} />
+            <X size={12} strokeWidth={2} aria-hidden="true" />
           </button>
         </div>
         <p className="type-caption font-normal text-[var(--apple-label-tertiary)]">
@@ -543,25 +559,25 @@ function SemanticStatusSpecimen() {
       token: '--apple-success',
       title: 'WCAG 2.2 AA contrast verified',
       detail: 'All 100 surface-to-ink pairs across Cool/Warm and Light/Dark pass >= 4.5:1.',
-      icon: SFCheckmarkCircleFill,
+      icon: CheckCircle2,
     },
     warning: {
       token: '--apple-warning',
       title: 'Unpublished draft note',
       detail: 'This essay carries noindex, nofollow metadata until explicitly marked published.',
-      icon: SFExclamationTriangle,
+      icon: AlertTriangle,
     },
     info: {
       token: '--apple-info',
       title: 'Isolated Studio sandbox active',
-      detail: 'Warm Neutral and Dark sandbox previews never mutate public portfolio pages.',
-      icon: SFInfoCircle,
+      detail: 'Cool Porcelain and Dark sandbox previews never mutate public portfolio pages.',
+      icon: Info,
     },
     error: {
       token: '--apple-error',
       title: 'Please enter a valid email address',
       detail: 'Inline validation keeps your draft intact and moves focus to the first invalid input.',
-      icon: SFExclamationTriangle,
+      icon: AlertTriangle,
     },
   }[tone];
 
@@ -596,10 +612,10 @@ function SemanticStatusSpecimen() {
         <div className="space-y-3 rounded-[18px] bg-[var(--apple-surface-elevated)] p-5 shadow-[var(--shadow-apple-subtle)]">
           {(
             [
-              { label: 'Resolved · Stage 2.5', color: 'var(--apple-success)', icon: SFCheckmark },
-              { label: 'Experimental · Not in public pages', color: 'var(--apple-warning)', icon: SFExclamationTriangle },
-              { label: 'Synced site-wide preference', color: 'var(--apple-info)', icon: SFInfoCircle },
-              { label: 'Please enter at least 10 characters', color: 'var(--apple-error)', icon: SFExclamationTriangle },
+              { label: 'Resolved · Stage 2.5', color: 'var(--apple-success)', icon: Check },
+              { label: 'Experimental · Not in public pages', color: 'var(--apple-warning)', icon: AlertTriangle },
+              { label: 'Synced site-wide preference', color: 'var(--apple-info)', icon: Info },
+              { label: 'Please enter at least 10 characters', color: 'var(--apple-error)', icon: AlertTriangle },
             ] as const
           ).map((row) => {
             const RowIcon = row.icon;
@@ -609,7 +625,7 @@ function SemanticStatusSpecimen() {
                 style={{ color: row.color }}
                 className="flex items-center gap-2 text-[13.5px] font-medium"
               >
-                <RowIcon size={14} className="shrink-0" />
+                <RowIcon size={14} strokeWidth={1.75} aria-hidden="true" className="shrink-0" />
                 <span>{row.label}</span>
               </p>
             );
@@ -625,7 +641,7 @@ function SemanticStatusSpecimen() {
           className="flex items-start gap-3 rounded-[18px] border p-5"
         >
           <span style={{ color: `var(${config.token})` }} className="mt-0.5 shrink-0">
-            <Icon size={17} />
+            <Icon size={17} strokeWidth={1.75} aria-hidden="true" />
           </span>
           <div className="min-w-0">
             <p
@@ -763,7 +779,7 @@ function EmptyErrorStatesSpecimen() {
       {recovered ? (
         <div className="apple-surface-subtle rounded-[22px] px-6 py-10 text-center">
           <div className="mx-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--apple-success)]/12 text-[var(--apple-success)]">
-            <SFCheckmark size={18} />
+            <Check size={18} strokeWidth={1.75} aria-hidden="true" />
           </div>
           <h4 className="type-title-3 mt-3">State recovered cleanly</h4>
           <p className="type-callout mx-auto mt-1.5 max-w-[44ch]">
@@ -783,7 +799,7 @@ function EmptyErrorStatesSpecimen() {
       ) : stateType === 'empty' ? (
         <div className="apple-surface-subtle rounded-[22px] px-6 py-10 text-center">
           <div className="mx-auto inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--apple-bg-secondary)] text-[var(--apple-label-secondary)]">
-            <SFBookmark size={18} />
+            <List size={18} strokeWidth={1.75} aria-hidden="true" />
           </div>
           <h4 className="type-title-3 mt-3">No matching case studies</h4>
           <p className="type-callout mx-auto mt-2 max-w-[44ch]">
@@ -797,7 +813,7 @@ function EmptyErrorStatesSpecimen() {
             }}
             className="apple-btn-primary mt-5"
           >
-            <SFReset size={14} />
+            <RotateCcw size={14} strokeWidth={1.75} aria-hidden="true" />
             <span>Reset filters</span>
           </button>
         </div>
@@ -807,7 +823,7 @@ function EmptyErrorStatesSpecimen() {
           className="apple-surface-subtle rounded-[22px] border border-[var(--apple-error)]/25 px-6 py-10 text-center"
         >
           <div className="mx-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--apple-error)]/10 text-[var(--apple-error)]">
-            <SFExclamationTriangle size={18} />
+            <AlertTriangle size={18} strokeWidth={1.75} aria-hidden="true" />
           </div>
           <h4 className="type-title-3 mt-3">Floor-plan sync interrupted</h4>
           <p className="type-callout mx-auto mt-2 max-w-[46ch]">
@@ -821,7 +837,7 @@ function EmptyErrorStatesSpecimen() {
             }}
             className="apple-btn-primary mt-5"
           >
-            <SFReset size={14} />
+            <RotateCcw size={14} strokeWidth={1.75} aria-hidden="true" />
             <span>Retry floor sync</span>
           </button>
         </div>
@@ -834,7 +850,9 @@ function EmptyErrorStatesSpecimen() {
    G1. AudioPlayer & Visual Waveform Generator (Real Production Components)
    ========================================================================== */
 function AudioPlayerSpecimen() {
-  const [mode, setMode] = useState<'player' | 'waveform'>('player');
+  const [mode, setMode] = useState<'player' | 'contextual' | 'waveform'>('contextual');
+  const [contextPreview, setContextPreview] = useState<'auto' | 'on-track' | 'out-of-context'>('out-of-context');
+  const [pinFloating, setPinFloating] = useState(false);
   const [simPlaying, setSimPlaying] = useState(true);
   const [simMuted, setSimMuted] = useState(false);
   const [simProgress, setSimProgress] = useState(0.46);
@@ -849,14 +867,40 @@ function AudioPlayerSpecimen() {
     <div>
       <ControlBar>
         <MiniChoiceGroup
-          ariaLabel="Audio component view"
+          ariaLabel="Audio component iteration"
           value={mode}
           onChange={setMode}
           options={[
-            { id: 'player', label: 'Full AudioPlayer' },
-            { id: 'waveform', label: 'AudioWaveform & Equalizer' },
+            { id: 'player', label: 'v1 · Editorial Player' },
+            { id: 'contextual', label: 'v2 · Contextual Floating' },
+            { id: 'waveform', label: 'Waveform & Equalizer' },
           ]}
         />
+        {mode === 'contextual' && (
+          <div className="flex flex-wrap items-center gap-2">
+            <MiniChoiceGroup
+              ariaLabel="Jump to speaker context state"
+              value={contextPreview}
+              onChange={setContextPreview}
+              options={[
+                { id: 'on-track', label: 'On-track' },
+                { id: 'out-of-context', label: 'Out of context' },
+                { id: 'auto', label: 'Live scroll' },
+              ]}
+            />
+            <button
+              type="button"
+              aria-pressed={pinFloating}
+              onClick={() => {
+                playTick();
+                setPinFloating((prev) => !prev);
+              }}
+              className="apple-link rounded-[8px] border border-[var(--apple-separator)] bg-[var(--apple-surface-elevated)] px-2.5 py-1 text-[12px] font-medium text-[var(--apple-label-primary)]"
+            >
+              {pinFloating ? 'Pinned to Viewport' : 'Pin to Bottom'}
+            </button>
+          </div>
+        )}
         {mode === 'waveform' && (
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -900,6 +944,22 @@ function AudioPlayerSpecimen() {
           title="StallSync Case Study (Studio Preview)"
           segments={SAMPLE_NARRATION}
         />
+      ) : mode === 'contextual' ? (
+        <div className="flex flex-col items-center justify-center rounded-[20px] border border-[var(--apple-separator-subtle)] bg-[var(--apple-bg-secondary)]/60 px-4 py-12 sm:px-8">
+          <div className="w-full max-w-[780px]">
+            <AudioPlayer
+              variant="contextual-floating"
+              contextualDisplayMode={pinFloating ? 'floating' : 'inline'}
+              forceOutOfContext={
+                contextPreview === 'auto'
+                  ? undefined
+                  : contextPreview === 'out-of-context'
+              }
+              title="StallSync Case Study (Studio Preview)"
+              segments={SAMPLE_NARRATION}
+            />
+          </div>
+        </div>
       ) : (
         <div className="space-y-4 rounded-[20px] bg-[var(--apple-surface-elevated)] p-6 shadow-[var(--shadow-apple-subtle)]">
           <div className="flex items-center justify-between">
@@ -932,6 +992,288 @@ function AudioPlayerSpecimen() {
           </p>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ==========================================================================
+   G1b. CassettePlayer (v1 Classic & v2 Editorial Audio Deck)
+   ========================================================================== */
+const SPECIMEN_CASSETTE_THEMES = [
+  CASSETTE_THEMES[2], // Warm Paper
+  CASSETTE_THEMES[0], // Archive Classic
+  CASSETTE_THEMES[3], // Braun Cream
+  CASSETTE_THEMES[1], // Studio Crimson
+  CASSETTE_THEMES[4], // Cobalt Slate
+] as const;
+
+function CassettePlayerSpecimen() {
+  const [variant, setVariant] = useState<CassettePlayerVariant>('v2');
+  const [contextState, setContextState] = useState<'on-track' | 'out-of-context'>(
+    'out-of-context',
+  );
+  const [themeId, setThemeId] = useState<string>(SPECIMEN_CASSETTE_THEMES[0].id);
+  const [activeChapter, setActiveChapter] = useState<CassetteChapter | null>(
+    STALLSYNC_CASSETTE_CHAPTERS[0],
+  );
+  const [highlightedChapterId, setHighlightedChapterId] = useState<string | null>(
+    null,
+  );
+
+  const selectedTheme = useMemo(
+    () =>
+      SPECIMEN_CASSETTE_THEMES.find((t) => t.id === themeId) ??
+      SPECIMEN_CASSETTE_THEMES[0],
+    [themeId],
+  );
+
+  const audioSrc = useMemo(
+    () => getSynthesizedTrackUrl(CASSETTE_DEMO_TRACKS[0]),
+    [],
+  );
+
+  const handleJumpToSpeaker = (chapter: CassetteChapter | null) => {
+    const target = chapter ?? STALLSYNC_CASSETTE_CHAPTERS[0];
+    setHighlightedChapterId(target.id);
+    setContextState('on-track');
+    showToast(`Jumped to ${target.num} · ${target.title}`);
+    window.setTimeout(() => {
+      setHighlightedChapterId((prev) => (prev === target.id ? null : prev));
+    }, 1800);
+  };
+
+  return (
+    <div>
+      <ControlBar>
+        <MiniChoiceGroup
+          ariaLabel="CassettePlayer version"
+          value={variant}
+          onChange={setVariant}
+          options={[
+            { id: 'v2', label: 'v2 · Editorial Deck' },
+            { id: 'v1', label: 'v1 · Classic Deck' },
+          ]}
+        />
+
+        {variant === 'v2' && (
+          <MiniChoiceGroup
+            ariaLabel="Jump to speaker context state"
+            value={contextState}
+            onChange={setContextState}
+            options={[
+              { id: 'on-track', label: 'On-track' },
+              { id: 'out-of-context', label: 'Out of context' },
+            ]}
+          />
+        )}
+
+        <div
+          role="group"
+          aria-label="Cassette material finish"
+          className="flex flex-wrap items-center gap-1.5"
+        >
+          {SPECIMEN_CASSETTE_THEMES.map((theme) => {
+            const selected = theme.id === selectedTheme.id;
+            return (
+              <button
+                key={theme.id}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => {
+                  if (!selected) {
+                    playTick();
+                    setThemeId(theme.id);
+                  }
+                }}
+                className={`inline-flex min-h-[28px] cursor-pointer items-center gap-1.5 rounded-full border px-2.5 text-[11.5px] font-medium transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.97] ${
+                  selected
+                    ? 'border-[var(--apple-label-primary)] bg-[var(--apple-surface-elevated)] text-[var(--apple-label-primary)] shadow-2xs'
+                    : 'border-[var(--apple-separator)] bg-[var(--apple-bg-secondary)]/60 text-[var(--apple-label-secondary)] hover:border-[var(--apple-separator-strong)] hover:text-[var(--apple-label-primary)]'
+                }`}
+              >
+                <span
+                  aria-hidden="true"
+                  className="h-2.5 w-2.5 rounded-full border border-black/15"
+                  style={{ backgroundColor: theme.stripeOne }}
+                />
+                <span>{theme.name}</span>
+              </button>
+            );
+          })}
+        </div>
+      </ControlBar>
+
+      <div className="mx-auto max-w-[680px]">
+        <CassettePlayer
+          variant={variant}
+          audioSrc={audioSrc}
+          trackTitle="StallSync Case Study"
+          archiveLabel="ARCHIVE · CASE AUDIO"
+          sideLabel="SIDE A"
+          catalogueNumber="202604"
+          chapters={STALLSYNC_CASSETTE_CHAPTERS}
+          isOutOfContext={variant === 'v2' && contextState === 'out-of-context'}
+          onJumpToSpeaker={handleJumpToSpeaker}
+          onActiveChapterChange={setActiveChapter}
+          theme={selectedTheme}
+          stageMode="themed"
+        />
+
+        {variant === 'v2' && (
+          <div className="mt-4 rounded-[18px] border border-[var(--apple-separator)] bg-[var(--apple-surface-elevated)] px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--apple-label-tertiary)]">
+                Synced Case Study Chapters
+              </p>
+              <p className="text-[12px] text-[var(--apple-label-secondary)]">
+                Keys: <kbd className="rounded border border-[var(--apple-separator)] px-1 font-mono text-[11px]">J</kbd> −15s ·{' '}
+                <kbd className="rounded border border-[var(--apple-separator)] px-1 font-mono text-[11px]">K</kbd> +15s ·{' '}
+                <kbd className="rounded border border-[var(--apple-separator)] px-1 font-mono text-[11px]">M</kbd> Mute ·{' '}
+                <kbd className="rounded border border-[var(--apple-separator)] px-1 font-mono text-[11px]">0</kbd> Rewind
+              </p>
+            </div>
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
+              {STALLSYNC_CASSETTE_CHAPTERS.map((chap) => {
+                const isActive = activeChapter?.id === chap.id;
+                const isJumped = highlightedChapterId === chap.id;
+                return (
+                  <span
+                    key={chap.id}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11.5px] font-medium transition-[background-color,border-color,color,box-shadow] duration-200 ${
+                      isJumped
+                        ? 'border-[var(--apple-blue)] bg-[var(--apple-blue)]/14 text-[var(--apple-blue)] shadow-[0_0_0_2px_rgba(0,113,227,0.18)]'
+                        : isActive
+                          ? 'border-[var(--apple-separator-strong)] bg-[var(--apple-bg-secondary)] text-[var(--apple-label-primary)]'
+                          : 'border-transparent bg-transparent text-[var(--apple-label-tertiary)]'
+                    }`}
+                  >
+                    <span className="font-mono text-[10.5px] opacity-75">{chap.num}</span>
+                    <span>{chap.title}</span>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ==========================================================================
+   G1c. IPodPlayer (v2 Classic WebGL + v1 2001 Original)
+   ========================================================================== */
+function IPodPlayerSpecimen() {
+  const [version, setVersion] = useState<'v2' | 'v1'>('v2');
+  const [metalFinish, setMetalFinish] = useState<IPodMetalFinish>('silver');
+  const [wheelMode, setWheelMode] = useState<IPodWheelCaptureMode>('hold');
+  const [theme, setTheme] = useState<IPodTheme>('classic');
+  const [size, setSize] = useState<IPodSize>('default');
+  const [enable3dTilt, setEnable3dTilt] = useState<boolean>(true);
+
+  return (
+    <div>
+      <ControlBar>
+        <MiniChoiceGroup
+          ariaLabel="iPod version"
+          value={version}
+          onChange={setVersion}
+          options={[
+            { id: 'v2', label: 'v2 · Classic WebGL' },
+            { id: 'v1', label: 'v1 · 2001 Original' },
+          ]}
+        />
+
+        {version === 'v2' ? (
+          <>
+            <MiniChoiceGroup
+              ariaLabel="iPod metal finish"
+              value={metalFinish}
+              onChange={setMetalFinish}
+              options={[
+                { id: 'silver', label: 'Silver' },
+                { id: 'graphite', label: 'Graphite' },
+                { id: 'champagne', label: 'Champagne' },
+              ]}
+            />
+
+            <MiniChoiceGroup
+              ariaLabel="Mouse wheel capture"
+              value={wheelMode}
+              onChange={setWheelMode}
+              options={[
+                { id: 'hold', label: 'Wheel: Hold iPod' },
+                { id: 'always', label: 'Wheel: Always' },
+              ]}
+            />
+          </>
+        ) : (
+          <>
+            <MiniChoiceGroup
+              ariaLabel="iPod finish"
+              value={theme}
+              onChange={setTheme}
+              options={[
+                { id: 'classic', label: 'Classic White' },
+                { id: 'black', label: 'Matte Black' },
+                { id: 'u2', label: 'U2 Edition' },
+              ]}
+            />
+
+            <MiniChoiceGroup
+              ariaLabel="iPod scale"
+              value={size}
+              onChange={setSize}
+              options={[
+                { id: 'default', label: '100%' },
+                { id: 'medium', label: '118%' },
+                { id: 'large', label: '132%' },
+              ]}
+            />
+          </>
+        )}
+
+        <button
+          type="button"
+          aria-pressed={enable3dTilt}
+          onClick={() => {
+            playTick();
+            setEnable3dTilt((prev) => !prev);
+          }}
+          className="apple-link cursor-pointer rounded-[8px] border border-[var(--apple-separator)] bg-[var(--apple-surface-elevated)] px-2.5 py-1 text-[12px] font-medium text-[var(--apple-label-primary)]"
+        >
+          3D Tilt: {enable3dTilt ? 'On' : 'Off'}
+        </button>
+      </ControlBar>
+
+      <div className="rounded-[22px] border border-[var(--apple-separator-subtle)] bg-[var(--apple-bg-secondary)]/60 px-4 py-5">
+        {version === 'v2' ? (
+          <>
+            <IPodClassicV2
+              finish={metalFinish}
+              wheelCaptureMode={wheelMode}
+              enable3dTilt={enable3dTilt}
+              ownerName="Rohit"
+            />
+            <p className="mt-2 text-center text-[12px] text-[var(--apple-label-tertiary)]">
+              38px brushed-metal WebGL shell · Drag the Click Wheel to browse Cover Flow, Synced Lyrics, Brick, Music Quiz &amp; Add Song (+)
+            </p>
+          </>
+        ) : (
+          <>
+            <IPodPlayer
+              theme={theme}
+              size={size}
+              ownerName="Rohit"
+              enable3dTilt={enable3dTilt}
+              instantBoot
+            />
+            <p className="mt-1 text-center text-[12px] text-[var(--apple-label-tertiary)]">
+              Move cursor to tilt in 3D · Drag around the Click Wheel to scroll or scrub ±5s · Click any song to play
+            </p>
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -1042,7 +1384,6 @@ function LocalTimeClockSpecimen() {
    ========================================================================== */
 function ReadingDepthSpecimen() {
   const [depth, setDepth] = useState<'skim' | 'full'>('full');
-  const [saved, setSaved] = useState(false);
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
   const project = PROJECTS[0];
@@ -1093,22 +1434,6 @@ function ReadingDepthSpecimen() {
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            aria-pressed={saved}
-            onClick={() => {
-              playTick();
-              setSaved((prev) => !prev);
-            }}
-            className={`type-caption inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-3.5 py-1 font-medium transition-all ${
-              saved
-                ? 'bg-[var(--apple-blue-fill)] text-white'
-                : 'apple-surface-subtle text-[var(--apple-label-primary)]'
-            }`}
-          >
-            {saved ? <SFBookmarkFill size={12} /> : <SFBookmark size={12} />}
-            <span>{saved ? 'Shortlisted' : 'Shortlist'}</span>
-          </button>
           <ReaderComfortPopover align="right" />
         </div>
       </div>
@@ -1132,7 +1457,7 @@ function ReadingDepthSpecimen() {
             />
           </div>
           <span className="apple-ios-bar absolute bottom-3.5 right-3.5 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium text-[var(--apple-label-primary)]">
-            <SFExpand size={12} />
+            <Maximize2 size={12} strokeWidth={2} aria-hidden="true" />
             <span>Inspect</span>
           </span>
         </button>
@@ -1233,10 +1558,10 @@ function TablesListsSpecimen() {
     density === 'compact' ? 'py-2.5' : density === 'spacious' ? 'py-4.5' : 'py-3.5';
 
   const ROWS = [
-    { token: '--apple-bg', light: '#FFFFFF', dark: '#0B0B0D', ratio: '16.7:1' },
-    { token: '--apple-label-secondary', light: '#58585D', dark: '#A1A1A6', ratio: '7.0:1' },
-    { token: '--apple-link', light: '#0066CC', dark: '#409CFF', ratio: '5.6:1' },
-    { token: '--apple-success', light: '#1B7A38', dark: '#32D74B', ratio: '5.3:1' },
+    { token: '--apple-bg', light: '#FAF8F6', dark: '#11100E', ratio: '16.5:1' },
+    { token: '--apple-label-secondary', light: '#57534E', dark: '#A8A29A', ratio: '7.1:1' },
+    { token: '--apple-link', light: '#1D56C9', dark: '#689BFF', ratio: '6.3:1' },
+    { token: '--apple-success', light: '#1B7A38', dark: '#32D74B', ratio: '5.1:1' },
   ];
 
   return (
@@ -1327,8 +1652,10 @@ function PracticeTimelineSpecimen({
                     className="apple-link group inline-flex items-center gap-1 text-[15.5px] font-semibold text-[var(--apple-label-primary)] hover:text-[var(--apple-link)]"
                   >
                     <span>{project.title}</span>
-                    <SFChevronRight
+                    <ChevronRight
                       size={13}
+                      strokeWidth={2}
+                      aria-hidden="true"
                       className="text-[var(--apple-label-tertiary)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--apple-link)]"
                     />
                   </a>
@@ -1463,7 +1790,7 @@ export function renderSecondarySpecimen({
 }: SpecimenRenderProps): React.ReactNode | null {
   switch (componentId) {
     case 'slide-over-drawers':
-      return <SlideOverDrawersSpecimen onPreviewNavigate={onPreviewNavigate} />;
+      return <SlideOverDrawersSpecimen />;
     case 'lightbox-modal':
       return <LightboxSpecimen />;
     case 'disclosure-accordion':
@@ -1480,6 +1807,12 @@ export function renderSecondarySpecimen({
       return <EmptyErrorStatesSpecimen />;
     case 'audio-player-waveform':
       return <AudioPlayerSpecimen />;
+    case 'cassette-player':
+      return <CassettePlayerSpecimen />;
+    case 'ipod-player':
+      return <IPodPlayerSpecimen />;
+    case 'interactive-book':
+      return <InteractiveBookSpecimen />;
     case 'before-after-comparator':
       return <BeforeAfterSpecimen />;
     case 'case-study-prototypes':

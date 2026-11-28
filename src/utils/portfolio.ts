@@ -7,18 +7,28 @@ export type TocVariant =
   | 'ios-capsule'
   | 'apple-local-nav'
   | 'macos-sidebar'
-  | 'tactile-scrubber';
+  | 'tactile-scrubber'
+  | 'chapter-scrubber'
+  | 'wave-scrubber'
+  | 'scroll-index';
 
 export type RouteMatch =
   | { page: 'home' }
+  | { page: 'work' }
   | { page: 'about' }
   | { page: 'contact' }
   | { page: 'case-study'; slug: string }
   | { page: 'notes' }
   | { page: 'note-detail'; slug: string }
-  | { page: 'design-system'; section: DesignWorkshopSection };
+  | { page: 'design-system'; section: DesignWorkshopSection }
+  | { page: 'flex-carousel' };
 
-export type ProjectFilter = 'all' | 'product' | 'interactive' | 'enterprise';
+export type ProjectFilter =
+  | 'all'
+  | 'web-design'
+  | 'saas'
+  | 'mobile-app'
+  | 'brand-identity';
 export type ProjectSort = 'featured' | 'newest' | 'alphabetical';
 
 export interface FilterableProject {
@@ -156,8 +166,12 @@ export function parseRoute(pathname: string): RouteMatch {
   const withoutHashOrQuery = pathname.split(/[?#]/)[0] ?? '/';
   const normalized = withoutHashOrQuery.replace(/\/+$/, '') || '/';
 
-  if (normalized === '/' || normalized === '/work') {
+  if (normalized === '/') {
     return { page: 'home' };
+  }
+
+  if (normalized === '/work') {
+    return { page: 'work' };
   }
 
   if (normalized === '/about') {
@@ -166,6 +180,10 @@ export function parseRoute(pathname: string): RouteMatch {
 
   if (normalized === '/contact') {
     return { page: 'contact' };
+  }
+
+  if (normalized === '/flex-carousel' || normalized === '/carousel-lab') {
+    return { page: 'flex-carousel' };
   }
 
   const workMatch = normalized.match(/^\/work\/([a-z0-9-]+)$/i);
@@ -264,9 +282,10 @@ export function getProjectFilterCounts<T extends FilterableProject>(
 ): Record<ProjectFilter, number> {
   const counts: Record<ProjectFilter, number> = {
     all: projects.length,
-    product: 0,
-    interactive: 0,
-    enterprise: 0,
+    'web-design': 0,
+    saas: 0,
+    'mobile-app': 0,
+    'brand-identity': 0,
   };
 
   for (const project of projects) {
@@ -585,9 +604,10 @@ function extractMeaningfulTokens(values: readonly string[]): Set<string> {
 }
 
 const FILTER_GROUP_LABEL: Record<Exclude<ProjectFilter, 'all'>, string> = {
-  product: 'Product Systems',
-  interactive: 'Interactive Craft',
-  enterprise: 'Enterprise & Systems',
+  'web-design': 'Web Design',
+  saas: 'Web App',
+  'mobile-app': 'Mobile App',
+  'brand-identity': 'Brand Identity',
 };
 
 /**

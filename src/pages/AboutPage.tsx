@@ -7,7 +7,8 @@ import {
   SITE_CONFIG,
 } from '../data/site';
 import { LocalTimeClock } from '../components/LocalTimeClock';
-import { SFChevronRight, SFPrinter } from '../components/SFSymbols';
+import { AboutJournalBook } from '../components/AboutJournalBook';
+import { ChevronRight, Printer } from 'lucide-react';
 import { EASE_APPLE, VIEWPORT_REVEAL } from '../utils/motion';
 import { playTick } from '../utils/soundEngine';
 
@@ -54,48 +55,43 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
       </div>
 
       {/* Intro */}
-      <section className="mx-auto max-w-[1160px] px-5 pb-20 pt-16 sm:px-8 sm:pb-28 sm:pt-24 print:px-0 print:pb-6 print:pt-6">
+      <section className="mx-auto max-w-[1160px] px-5 pb-20 pt-12 sm:px-8 sm:pb-28 sm:pt-16 print:px-0 print:pb-6 print:pt-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.44, ease: EASE_APPLE }}
-            className="type-eyebrow text-[var(--apple-link)]"
-          >
+          <p className="type-eyebrow text-[var(--apple-link)]">
             {ABOUT_CONTENT.eyebrow}
-          </motion.p>
+          </p>
 
           <button
             type="button"
             onClick={handlePrintResume}
             className="apple-btn-tonal !min-h-[44px] !px-4 !py-1.5 !text-[13px] sm:!min-h-[36px] print:hidden"
           >
-            <SFPrinter size={14} className="text-[var(--apple-link)]" />
+            <Printer size={14} strokeWidth={1.75} className="text-[var(--apple-link)]" aria-hidden="true" />
             <span>Print Resume</span>
           </button>
         </div>
 
-        <motion.h1
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.54, delay: 0.05, ease: EASE_APPLE }}
-          className="type-title-1 measure-title mt-3"
-        >
-          {ABOUT_CONTENT.headline}
-        </motion.h1>
+        <div className="mt-3 grid grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-12 print:block">
+          <div className="lg:col-span-7">
+            <h1 className="type-title-1 measure-title">
+              {ABOUT_CONTENT.headline}
+            </h1>
 
-        <motion.p
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.54, delay: 0.1, ease: EASE_APPLE }}
-          className="type-lead measure-lead mt-6"
-        >
-          {ABOUT_CONTENT.lead}
-        </motion.p>
+            <p className="type-lead measure-lead mt-6">
+              {ABOUT_CONTENT.lead}
+            </p>
 
-        {/* Live Hyderabad Local Time (IST) */}
-        <div className="mt-7 print:hidden">
-          <LocalTimeClock variant="inline" />
+            {/* Live Local Time */}
+            <div className="mt-7 print:hidden">
+              <LocalTimeClock variant="inline" />
+            </div>
+          </div>
+
+          <div className="flex justify-center pt-4 lg:col-span-5 lg:justify-end lg:pt-0 print:hidden">
+            <AboutJournalBook
+              caption="Field journal · Click to open & flip pages"
+            />
+          </div>
         </div>
       </section>
 
@@ -161,8 +157,10 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
                             className="apple-link group inline-flex items-center gap-1.5 text-[16.5px] font-semibold tracking-[-0.015em] text-[var(--apple-label-primary)] hover:text-[var(--apple-link)]"
                           >
                             <span>{project.title}</span>
-                            <SFChevronRight
+                            <ChevronRight
                               size={13}
+                              strokeWidth={2}
+                              aria-hidden="true"
                               className="text-[var(--apple-label-tertiary)] transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-[var(--apple-link)] print:hidden"
                             />
                           </a>
@@ -196,7 +194,7 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
             Principles that guide my work.
           </h2>
 
-          <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2 lg:gap-7">
+          <div className="mt-10 grid grid-cols-1 gap-y-10 md:grid-cols-2 md:gap-x-10 lg:gap-x-12">
             {ABOUT_CONTENT.philosophy.map((item) => (
               <motion.div
                 key={item.index}
@@ -204,9 +202,9 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={VIEWPORT_REVEAL}
                 transition={{ duration: 0.48, ease: EASE_APPLE }}
-                className="apple-surface-subtle rounded-[26px] p-7 sm:p-8"
+                className="border-t border-[var(--apple-separator)] pt-6"
               >
-                <span className="type-caption tabular-nums text-[var(--apple-link)]">
+                <span className="type-caption tabular-nums text-[var(--editorial-accent-warm)]">
                   {item.index}
                 </span>
                 <h3 className="type-title-3 mt-3">{item.title}</h3>
@@ -228,13 +226,16 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
               <h2 className="type-title-2 mt-2">Disciplines &amp; craft</h2>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:col-span-8">
-              {CAPABILITIES.map((cap) => (
+            <div className="grid grid-cols-1 gap-y-8 sm:grid-cols-2 sm:gap-x-8 lg:col-span-8">
+              {CAPABILITIES.map((cap, idx) => (
                 <div
                   key={cap.id}
-                  className="rounded-[22px] bg-[var(--apple-bg-secondary)] p-6"
+                  className="border-t border-[var(--apple-separator)] pt-5"
                 >
-                  <h3 className="type-headline font-display">{cap.name}</h3>
+                  <span className="type-caption tabular-nums text-[var(--editorial-accent-warm)]">
+                    {String(idx + 1).padStart(2, '0')}
+                  </span>
+                  <h3 className="type-headline font-display mt-2">{cap.name}</h3>
                   <p className="type-callout mt-2">{cap.summary}</p>
                 </div>
               ))}
@@ -249,17 +250,14 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
               <h2 className="type-title-2 mt-2">How I work with teams</h2>
             </div>
 
-            <div className="space-y-4 lg:col-span-8">
+            <div className="divide-y divide-[var(--apple-separator)] border-y border-[var(--apple-separator)] lg:col-span-8">
               {COLLABORATION_CONTEXTS.map((ctx) => (
-                <div
-                  key={ctx.title}
-                  className="rounded-[22px] bg-[var(--apple-bg-secondary)] p-6 sm:p-7"
-                >
+                <div key={ctx.title} className="py-6">
                   <p className="type-caption text-[var(--apple-link)]">
                     {ctx.scope}
                   </p>
                   <h3 className="type-title-3 mt-1.5">{ctx.title}</h3>
-                  <p className="type-callout mt-2">{ctx.description}</p>
+                  <p className="type-callout measure-prose mt-2">{ctx.description}</p>
                 </div>
               ))}
             </div>
@@ -312,7 +310,7 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
             </div>
           </div>
 
-          <div className="apple-surface-subtle mt-20 flex flex-col items-start justify-between gap-6 rounded-[28px] p-8 sm:flex-row sm:items-center sm:p-12 print:hidden">
+          <div className="mt-20 flex flex-col items-start justify-between gap-6 border-t border-[var(--apple-separator)] pt-12 sm:flex-row sm:items-center print:hidden">
             <div>
               <h2 className="type-title-3">
                 Interested in working together?

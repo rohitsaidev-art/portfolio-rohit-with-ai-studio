@@ -3,27 +3,32 @@ import {
   lazy,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
-import { AnimatePresence, MotionConfig, motion } from 'motion/react';
+import { MotionConfig, motion } from 'motion/react';
 import { PROJECTS } from './data/projects';
 import { JOURNAL_NOTES } from './data/notes';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { FloatingBackToTop } from './components/FloatingBackToTop';
 import { ToastViewport } from './components/ToastViewport';
+import { CaseStudyTransitionOverlay } from './components/CaseStudyTransitionOverlay';
 import { CommandPalette } from './components/CommandPalette';
 import { ColophonDrawer } from './components/ColophonDrawer';
-import { ShortlistDrawer } from './components/ShortlistDrawer';
 import { HomePage } from './pages/HomePage';
+import {
+  getActiveCaseStudyTransition,
+  subscribeCaseStudyTransition,
+} from './utils/caseStudyTransition';
 import { initializeAppearance } from './utils/appearance';
+import { initializeColorTheme } from './utils/colorTheme';
 import { initializeReaderPreferences } from './utils/readerPreferences';
-import { initializeShortlist } from './utils/shortlist';
+import { initializeSmoothScroll } from './utils/smoothScroll';
 import { applyRouteSeo, resolveRouteSeo } from './utils/seo';
 import { trackPageView } from './utils/analytics';
-import { showToast } from './utils/toast';
 import {
   getNoteBySlug,
   getProjectBySlug,
@@ -38,30 +43,76 @@ import {
   scrollToTop,
 } from './utils/scroll';
 
-// Route-level code splitting (P3.2): keeps HomePage eager for instant first paint
-// and isolates secondary pages & the internal Design Workshop into separate chunks.
-const CaseStudyPage = lazy(() =>
-  import('./pages/CaseStudyPage').then((m) => ({ default: m.CaseStudyPage })),
-);
-const NotesPage = lazy(() =>
-  import('./pages/NotesPage').then((m) => ({ default: m.NotesPage })),
-);
-const NoteDetailPage = lazy(() =>
-  import('./pages/NoteDetailPage').then((m) => ({ default: m.NoteDetailPage })),
-);
-const AboutPage = lazy(() =>
-  import('./pages/AboutPage').then((m) => ({ default: m.AboutPage })),
-);
-const ContactPage = lazy(() =>
-  import('./pages/ContactPage').then((m) => ({ default: m.ContactPage })),
-);
-const DesignWorkshopPage = lazy(() =>
+// Route-level code splitting with reusable loaders for idle + hover prefetching
+const loadWorkPage = () =>
+  import('./pages/WorkPage').then((m) => ({ default: m.WorkPage }));
+const loadCaseStudyPage = () =>
+  import('./pages/CaseStudyPage').then((m) => ({ default: m.CaseStudyPage }));
+const loadNotesPage = () =>
+  import('./pages/NotesPage').then((m) => ({ default: m.NotesPage }));
+const loadNoteDetailPage = () =>
+  import('./pages/NoteDetailPage').then((m) => ({ default: m.NoteDetailPage }));
+const loadAboutPage = () =>
+  import('./pages/AboutPage').then((m) => ({ default: m.AboutPage }));
+const loadContactPage = () =>
+  import('./pages/ContactPage').then((m) => ({ default: m.ContactPage }));
+const loadDesignWorkshopPage = () =>
   import('./pages/DesignWorkshopPage').then((m) => ({
     default: m.DesignWorkshopPage,
-  })),
-);
+  }));
+const loadFlexCarouselLabPage = () =>
+  import('./pages/FlexCarouselLabPage').then((m) => ({
+    default: m.FlexCarouselLabPage,
+  }));
 
-const TOC_STORAGE_KEY = 'portfolio_toc_variant';
+const WorkPage = lazy(loadWorkPage);
+const CaseStudyPage = lazy(loadCaseStudyPage);
+const NotesPage = lazy(loadNotesPage);
+const NoteDetailPage = lazy(loadNoteDetailPage);
+const AboutPage = lazy(loadAboutPage);
+const ContactPage = lazy(loadContactPage);
+const DesignWorkshopPage = lazy(loadDesignWorkshopPage);
+const FlexCarouselLabPage = lazy(loadFlexCarouselLabPage);
+
+const prefetchedRouteChunks = new Set<string>();
+
+function prefetchRouteByPath(path: string) {
+  const clean = path.split('#')[0].split('?')[0] || '/';
+  const match = parseRoute(clean);
+  if (prefetchedRouteChunks.has(match.page)) return;
+  prefetchedRouteChunks.add(match.page);
+
+  switch (match.page) {
+    case 'work':
+      void loadWorkPage();
+      break;
+    case 'case-study':
+      void loadCaseStudyPage();
+      break;
+    case 'notes':
+      void loadNotesPage();
+      break;
+    case 'note-detail':
+      void loadNoteDetailPage();
+      break;
+    case 'about':
+      void loadAboutPage();
+      break;
+    case 'contact':
+      void loadContactPage();
+      break;
+    case 'design-system':
+      void loadDesignWorkshopPage();
+      break;
+    case 'flex-carousel':
+      void loadFlexCarouselLabPage();
+      break;
+    default:
+      break;
+  }
+}
+
+const TOC_STORAGE_KEY = 'portfolio_toc_variant_v2';
 
 function loadStoredTocVariant(): TocVariant {
   try {
@@ -71,26 +122,43 @@ function loadStoredTocVariant(): TocVariant {
       raw === 'ios-capsule' ||
       raw === 'apple-local-nav' ||
       raw === 'macos-sidebar' ||
-      raw === 'tactile-scrubber'
+      raw === 'tactile-scrubber' ||
+      raw === 'chapter-scrubber' ||
+      raw === 'wave-scrubber' ||
+      raw === 'scroll-index'
     ) {
       return raw;
     }
   } catch {
     // Ignore storage restrictions
   }
-  return 'notch-rail';
+  return 'scroll-index';
 }
 
+/**
+ * Height-stable fallback that stays completely silent for the first 300ms
+ * so cached or fast-network route transitions never flash a spinner.
+ */
 function RouteLoadingFallback() {
+  const [showIndicator, setShowIndicator] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setShowIndicator(true), 300);
+    return () => window.clearTimeout(timer);
+  }, []);
+
   return (
     <div
       role="status"
       aria-live="polite"
-      className="mx-auto flex min-h-[52vh] max-w-[1160px] items-center justify-center px-5 py-24 sm:px-8"
+      className="mx-auto flex min-h-[calc(100dvh-52px)] max-w-[1160px] items-center justify-center px-5 py-24 sm:px-8"
     >
-      <div className="flex items-center gap-3 text-[var(--apple-label-secondary)]">
+      <div
+        className={`flex items-center gap-2.5 text-[var(--apple-label-tertiary)] transition-opacity duration-200 ${
+          showIndicator ? 'opacity-100' : 'opacity-0'
+        }`}
+      >
         <span className="apple-spinner" aria-hidden="true" />
-        <span className="type-footnote font-normal">Loading view…</span>
       </div>
     </div>
   );
@@ -104,28 +172,53 @@ export default function App() {
     loadStoredTocVariant(),
   );
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  const [shortlistOpen, setShortlistOpen] = useState(false);
   const [colophonOpen, setColophonOpen] = useState(false);
   const [routeAnnouncement, setRouteAnnouncement] = useState('');
+  const [hasCardTransition, setHasCardTransition] = useState<boolean>(() =>
+    Boolean(getActiveCaseStudyTransition()),
+  );
   const pendingHashRef = useRef<string | null>(
     window.location.hash ? window.location.hash.slice(1) : null,
   );
   const hasMountedRef = useRef(false);
 
-  // Initialize Appearance, Reader Comfort, and Recruiter Shortlist (with URL restoration)
+  // Track active FlexCarousel -> CaseStudy card expansion overlay
+  useEffect(() => {
+    return subscribeCaseStudyTransition((req) => {
+      setHasCardTransition(Boolean(req));
+    });
+  }, []);
+
+  // Initialize Appearance, Color Theme, Reader Comfort, and Global Smooth Scroll
   useEffect(() => {
     initializeAppearance();
+    initializeColorTheme();
     initializeReaderPreferences();
-    const { restoredFromUrl, slugs } = initializeShortlist(window.location.search);
-    if (restoredFromUrl && slugs.length > 0) {
-      setShortlistOpen(true);
-      showToast({
-        message: `Loaded shared shortlist (${slugs.length} ${
-          slugs.length === 1 ? 'case study' : 'case studies'
-        })`,
-        tone: 'info',
-      });
+    return initializeSmoothScroll();
+  }, []);
+
+  // Warm primary route chunks silently once the browser is idle so tab switches are instant
+  useEffect(() => {
+    const warmPrimaryRoutes = () => {
+      prefetchRouteByPath('/work');
+      prefetchRouteByPath('/notes');
+      prefetchRouteByPath('/about');
+      prefetchRouteByPath('/contact');
+      prefetchRouteByPath('/work/stallsync');
+    };
+
+    const win = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+
+    if (typeof win.requestIdleCallback === 'function') {
+      const idleId = win.requestIdleCallback(warmPrimaryRoutes, { timeout: 1200 });
+      return () => win.cancelIdleCallback?.(idleId);
     }
+
+    const timer = window.setTimeout(warmPrimaryRoutes, 650);
+    return () => window.clearTimeout(timer);
   }, []);
 
   // Global Cmd+K / Ctrl+K keyboard shortcut for public Command Palette (P2.4)
@@ -136,7 +229,6 @@ export default function App() {
         setCommandPaletteOpen((prev) => {
           const next = !prev;
           if (next) {
-            setShortlistOpen(false);
             setColophonOpen(false);
           }
           return next;
@@ -148,20 +240,12 @@ export default function App() {
   }, []);
 
   const openCommandPalette = useCallback(() => {
-    setShortlistOpen(false);
     setColophonOpen(false);
     setCommandPaletteOpen(true);
   }, []);
 
-  const openShortlist = useCallback(() => {
-    setCommandPaletteOpen(false);
-    setColophonOpen(false);
-    setShortlistOpen(true);
-  }, []);
-
   const openColophon = useCallback(() => {
     setCommandPaletteOpen(false);
-    setShortlistOpen(false);
     setColophonOpen(true);
   }, []);
 
@@ -177,13 +261,16 @@ export default function App() {
   const navigate = useCallback(
     (path: string) => {
       const normalized = path.startsWith('/') ? path : `/${path}`;
-      const [pathnamePart, hashPart = ''] = normalized.split('#');
+      const [beforeHash, hashPart = ''] = normalized.split('#');
+      const [pathnamePart, searchPart = ''] = beforeHash.split('?');
       const cleanPathname = pathnamePart || '/';
+      const cleanSearch = searchPart ? `?${searchPart}` : '';
 
-      const currentFull = `${window.location.pathname}${window.location.hash}`;
-      const targetFull = hashPart ? `${cleanPathname}#${hashPart}` : cleanPathname;
+      const currentFull = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      const targetFull = `${cleanPathname}${cleanSearch}${hashPart ? `#${hashPart}` : ''}`;
 
-      if (currentFull !== targetFull) {
+      const urlChanged = currentFull !== targetFull;
+      if (urlChanged) {
         window.history.pushState({}, '', targetFull);
       }
 
@@ -207,6 +294,9 @@ export default function App() {
               : nextRoute.page;
 
       if (currentKey === nextKey) {
+        if (urlChanged) {
+          window.dispatchEvent(new PopStateEvent('popstate'));
+        }
         if (hashPart) {
           scrollToElementById(hashPart);
         } else {
@@ -233,7 +323,23 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  const handleRouteExitComplete = useCallback(() => {
+  const routeKey =
+    route.page === 'case-study'
+      ? `case-study-${route.slug}`
+      : route.page === 'note-detail'
+        ? `note-detail-${route.slug}`
+        : route.page === 'design-system'
+          ? 'design-system'
+          : route.page;
+
+  const prevRouteKeyRef = useRef(routeKey);
+
+  // Immediately reset scroll position before paint on route change so the incoming
+  // view always enters cleanly at y=0 with zero mid-transition scroll jump.
+  useLayoutEffect(() => {
+    if (prevRouteKeyRef.current === routeKey) return;
+    prevRouteKeyRef.current = routeKey;
+
     const targetHash = pendingHashRef.current;
     if (targetHash) {
       pendingHashRef.current = null;
@@ -245,7 +351,7 @@ export default function App() {
       return;
     }
     scrollToTop('auto');
-  }, []);
+  }, [routeKey]);
 
   // Handle direct initial loads containing a URL hash (e.g., /#selected-work)
   useEffect(() => {
@@ -296,16 +402,8 @@ export default function App() {
     }
   }, [routeSeo]);
 
-  const routeKey =
-    route.page === 'case-study'
-      ? `case-study-${route.slug}`
-      : route.page === 'note-detail'
-        ? `note-detail-${route.slug}`
-        : route.page === 'design-system'
-          ? 'design-system'
-          : route.page;
-
   const reducedMotion = prefersReducedMotion();
+  const isInitialRouteMount = !hasMountedRef.current;
 
   return (
     <MotionConfig reducedMotion="user">
@@ -325,33 +423,33 @@ export default function App() {
         <Navbar
           route={route}
           onNavigate={navigate}
+          onPrefetchRoute={prefetchRouteByPath}
           onOpenCommandPalette={openCommandPalette}
-          onOpenShortlist={openShortlist}
         />
 
         <main
           id="main-content"
           tabIndex={-1}
-          className="flex-1 scroll-mt-[var(--scroll-offset-header)] focus:outline-none"
+          className="min-h-[calc(100dvh-52px)] flex-1 scroll-mt-[var(--scroll-offset-header)] focus:outline-none"
         >
-          <AnimatePresence
-            mode="wait"
-            initial={false}
-            onExitComplete={handleRouteExitComplete}
+          <motion.div
+            key={routeKey}
+            initial={
+              reducedMotion || hasCardTransition || isInitialRouteMount
+                ? false
+                : { opacity: 0, y: 6 }
+            }
+            animate={{ opacity: 1, y: 0 }}
+            transition={
+              reducedMotion || hasCardTransition
+                ? { duration: 0.01 }
+                : { duration: 0.28, ease: EASE_APPLE }
+            }
           >
-            <motion.div
-              key={routeKey}
-              initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={reducedMotion ? { opacity: 1 } : { opacity: 0, y: -4 }}
-              transition={
-                reducedMotion
-                  ? { duration: 0.01 }
-                  : { duration: 0.24, ease: EASE_APPLE }
-              }
-            >
-              <Suspense fallback={<RouteLoadingFallback />}>
-                {route.page === 'about' ? (
+            <Suspense fallback={<RouteLoadingFallback />}>
+                {route.page === 'work' ? (
+                  <WorkPage onNavigate={navigate} />
+                ) : route.page === 'about' ? (
                   <AboutPage onNavigate={navigate} />
                 ) : route.page === 'contact' ? (
                   <ContactPage />
@@ -368,6 +466,8 @@ export default function App() {
                     onApplyTocVariant={handleApplyTocVariant}
                     onNavigate={navigate}
                   />
+                ) : route.page === 'flex-carousel' ? (
+                  <FlexCarouselLabPage onNavigate={navigate} />
                 ) : route.page === 'case-study' && activeProject ? (
                   <CaseStudyPage
                     project={activeProject}
@@ -377,27 +477,25 @@ export default function App() {
                 ) : (
                   <HomePage onNavigate={navigate} />
                 )}
-              </Suspense>
-            </motion.div>
-          </AnimatePresence>
+            </Suspense>
+          </motion.div>
         </main>
 
         <FloatingBackToTop />
 
         <ToastViewport />
 
+        <CaseStudyTransitionOverlay
+          activeCaseStudySlug={
+            route.page === 'case-study' && activeProject ? activeProject.slug : null
+          }
+        />
+
         <CommandPalette
           open={commandPaletteOpen}
           onClose={() => setCommandPaletteOpen(false)}
           onNavigate={navigate}
-          onOpenShortlist={openShortlist}
           onOpenColophon={openColophon}
-        />
-
-        <ShortlistDrawer
-          open={shortlistOpen}
-          onClose={() => setShortlistOpen(false)}
-          onNavigate={navigate}
         />
 
         <ColophonDrawer

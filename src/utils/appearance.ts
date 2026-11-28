@@ -44,12 +44,24 @@ function detectSystemTheme(): ResolvedTheme {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
+const THEME_TRANSITION_DELAY_MS = 85;
+const THEME_FALLBACK_TRANSITION_MS = 480;
+
+let pendingThemeTimer: number | null = null;
+let fallbackCleanupTimer: number | null = null;
+
+type DocumentWithViewTransition = Document & {
+  startViewTransition?: (callback: () => void) => { finished: Promise<void> };
+};
+
 function loadStoredAppearanceMode(): AppearanceMode {
-  if (typeof window === 'undefined') return 'system';
+  if (typeof window === 'undefined') return 'light';
   try {
-    return parseAppearanceMode(window.localStorage.getItem(APPEARANCE_STORAGE_KEY));
+    const stored = window.localStorage.getItem(APPEARANCE_STORAGE_KEY);
+    if (stored === null) return 'light';
+    return parseAppearanceMode(stored);
   } catch {
-    return 'system';
+    return 'light';
   }
 }
 
@@ -63,7 +75,7 @@ function notifyListeners(): void {
   });
 }
 
-export function applyAppearanceToDocument(resolved: ResolvedTheme): void {
+function commitResolvedThemeToDom(resolved: ResolvedTheme): void {
   if (typeof document === 'undefined') return;
   const root = document.documentElement;
   if (resolved === 'dark') {
@@ -76,6 +88,57 @@ export function applyAppearanceToDocument(resolved: ResolvedTheme): void {
   root.setAttribute('data-appearance-resolved', resolved);
 }
 
+export function applyAppearanceToDocument(
+  resolved: ResolvedTheme,
+  options?: { animated?: boolean },
+): void {
+  if (typeof document === 'undefined') return;
+
+  if (pendingThemeTimer !== null && typeof window !== 'undefined') {
+    window.clearTimeout(pendingThemeTimer);
+    pendingThemeTimer = null;
+  }
+
+  const root = document.documentElement;
+  const currentDomTheme = root.getAttribute('data-appearance-resolved');
+  const shouldAnimate =
+    options?.animated === true &&
+    typeof window !== 'undefined' &&
+    currentDomTheme !== null &&
+    currentDomTheme !== resolved;
+
+  if (!shouldAnimate) {
+    commitResolvedThemeToDom(resolved);
+    return;
+  }
+
+  pendingThemeTimer = window.setTimeout(() => {
+    pendingThemeTimer = null;
+    const doc = document as DocumentWithViewTransition;
+
+    if (typeof doc.startViewTransition === 'function') {
+      try {
+        doc.startViewTransition(() => {
+          commitResolvedThemeToDom(resolved);
+        });
+        return;
+      } catch {
+        // Fall through to CSS fade fallback
+      }
+    }
+
+    if (fallbackCleanupTimer !== null) {
+      window.clearTimeout(fallbackCleanupTimer);
+    }
+    root.classList.add('theme-transitioning');
+    commitResolvedThemeToDom(resolved);
+    fallbackCleanupTimer = window.setTimeout(() => {
+      root.classList.remove('theme-transitioning');
+      fallbackCleanupTimer = null;
+    }, THEME_FALLBACK_TRANSITION_MS);
+  }, THEME_TRANSITION_DELAY_MS);
+}
+
 function ensureSystemListeners(): void {
   if (mediaListenersBound || typeof window === 'undefined') return;
   mediaListenersBound = true;
@@ -86,7 +149,7 @@ function ensureSystemListeners(): void {
       const nextSystem: ResolvedTheme = event.matches ? 'dark' : 'light';
       if (nextSystem !== systemTheme) {
         systemTheme = nextSystem;
-        applyAppearanceToDocument(getResolvedTheme());
+        applyAppearanceToDocument(getResolvedTheme(), { animated: true });
         notifyListeners();
       }
     };
@@ -102,7 +165,7 @@ function ensureSystemListeners(): void {
     const next = parseAppearanceMode(event.newValue);
     if (next !== currentMode) {
       currentMode = next;
-      applyAppearanceToDocument(getResolvedTheme());
+      applyAppearanceToDocument(getResolvedTheme(), { animated: true });
       notifyListeners();
     }
   });
@@ -113,7 +176,7 @@ export function initializeAppearance(): void {
   currentMode = loadStoredAppearanceMode();
   systemTheme = detectSystemTheme();
   ensureSystemListeners();
-  applyAppearanceToDocument(getResolvedTheme());
+  applyAppearanceToDocument(getResolvedTheme(), { animated: false });
 }
 
 export function getAppearanceMode(): AppearanceMode {
@@ -128,7 +191,10 @@ export function getResolvedTheme(): ResolvedTheme {
   return resolveAppearanceTheme(currentMode, systemTheme === 'dark');
 }
 
-export function setAppearanceMode(mode: AppearanceMode): void {
+export function setAppearanceMode(
+  mode: AppearanceMode,
+  options?: { animated?: boolean },
+): void {
   const changed = currentMode !== mode;
   currentMode = mode;
 
@@ -140,7 +206,9 @@ export function setAppearanceMode(mode: AppearanceMode): void {
     }
   }
 
-  applyAppearanceToDocument(getResolvedTheme());
+  applyAppearanceToDocument(getResolvedTheme(), {
+    animated: options?.animated ?? true,
+  });
 
   if (changed) {
     notifyListeners();

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { motion, useScroll, useSpring } from 'motion/react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { motion } from 'motion/react';
 import { PROJECTS, type CaseStudyProject } from '../data/projects';
 import { VERIFIED_TESTIMONIALS } from '../data/testimonials';
 import { CaseStudyPrototype } from '../components/CaseStudyPrototypes';
@@ -15,28 +15,24 @@ import { ReaderComfortPopover } from '../components/ReaderComfortPopover';
 import { BeforeAfterComparator } from '../components/BeforeAfterComparator';
 import { MobileReadingBar } from '../components/MobileReadingBar';
 import { TableOfContents } from '../components/TableOfContents';
+import { Maximize2 } from 'lucide-react';
 import {
-  SFBookmark,
-  SFBookmarkFill,
-  SFChevronLeft,
-  SFChevronRight,
-  SFExpand,
-} from '../components/SFSymbols';
-import {
-  getAdjacentProjects,
   getCaseStudyMetrics,
   getRelatedProjects,
   type TocVariant,
 } from '../utils/portfolio';
 import {
   buildCaseStudyNarrationSegments,
-  estimateSkimReadMinutes,
   getCaseStudyChaptersForDepth,
   type ReadingDepthMode,
 } from '../utils/caseStudyDepth';
-import { scrollToElementById } from '../utils/scroll';
-import { toggleShortlistSlug, useShortlistSlugs } from '../utils/shortlist';
-import { trackAnalyticsEvent } from '../utils/analytics';
+import {
+  ANCHOR_BREATHING_ROOM_PX,
+  STICKY_HEADER_HEIGHT_PX,
+  STICKY_SUBNAV_HEIGHT_PX,
+  resolveActiveSectionId,
+  scrollToElementById,
+} from '../utils/scroll';
 import { playTap, playTick } from '../utils/soundEngine';
 import { showToast } from '../utils/toast';
 import { EASE_APPLE, SPRING_SEGMENT, VIEWPORT_REVEAL } from '../utils/motion';
@@ -56,33 +52,39 @@ export function CaseStudyPage({
 }: CaseStudyPageProps) {
   const [readingDepth, setReadingDepth] = useState<ReadingDepthMode>('full');
   const [activeChapter, setActiveChapter] = useState<string>('overview');
+  const programmaticScrollTargetRef = useRef<string | null>(null);
+  const programmaticUnlockTimerRef = useRef<number | null>(null);
   const [narratingChapterId, setNarratingChapterId] = useState<string | null>(
     null,
   );
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const [isBeyondCaseStudy, setIsBeyondCaseStudy] = useState(false);
+  const narrativeEndRef = useRef<HTMLDivElement | null>(null);
   const [readingProgress, setReadingProgress] = useState<number>(0);
   const [activeIterationIndex, setActiveIterationIndex] = useState<number>(
     project.exploration.iterations.length - 1,
   );
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const shortlistedSlugs = useShortlistSlugs();
-  const isShortlisted = shortlistedSlugs.includes(project.slug);
   const coverDims =
     project.slug === 'stallsync' || project.slug === 'mycroharvest'
       ? { width: 1376, height: 768 }
       : { width: 1200, height: 896 };
 
-  const chapters = useMemo(
-    () => getCaseStudyChaptersForDepth(readingDepth),
-    [readingDepth],
-  );
-
-  const { scrollYProgress } = useScroll();
-  const smoothProgress = useSpring(scrollYProgress, {
-    stiffness: 220,
-    damping: 32,
-    restDelta: 0.001,
-  });
+  const chapters = useMemo(() => {
+    const subtitleByChapterId: Record<string, string> = {
+      overview: project.overview.tldr,
+      challenge: project.challenge.heading,
+      understanding: project.understanding.heading,
+      approach: project.approach.heading,
+      exploration: project.exploration.heading,
+      solution: project.solution.heading,
+      reflections: project.reflections.heading,
+    };
+    return getCaseStudyChaptersForDepth(readingDepth).map((chapter) => ({
+      ...chapter,
+      subtitle: subtitleByChapterId[chapter.id],
+    }));
+  }, [readingDepth, project]);
 
   useEffect(() => {
     setActiveIterationIndex(project.exploration.iterations.length - 1);
@@ -104,9 +106,26 @@ export function CaseStudyPage({
         document.documentElement.scrollHeight - window.innerHeight;
       if (maxScroll <= 0) {
         setReadingProgress(0);
-        return;
+      } else {
+        setReadingProgress(Math.min(1, Math.max(0, window.scrollY / maxScroll)));
       }
-      setReadingProgress(Math.min(1, Math.max(0, window.scrollY / maxScroll)));
+      const overviewEl = document.getElementById('overview');
+      const endEl = narrativeEndRef.current;
+      if (overviewEl) {
+        const overviewRect = overviewEl.getBoundingClientRect();
+        const compressLine = STICKY_HEADER_HEIGHT_PX + 12;
+        const expandLine = STICKY_HEADER_HEIGHT_PX + 72;
+        setIsBeyondCaseStudy((prev) => {
+          if (overviewRect.bottom <= compressLine) return true;
+          if (overviewRect.bottom >= expandLine) return false;
+          return prev;
+        });
+      } else if (endEl) {
+        const rect = endEl.getBoundingClientRect();
+        setIsBeyondCaseStudy(rect.top <= window.innerHeight * 0.65);
+      } else {
+        setIsBeyondCaseStudy(false);
+      }
     };
     handleScroll();
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -120,22 +139,111 @@ export function CaseStudyPage({
 
     if (elements.length === 0) return;
 
+    const headerOffsetPx =
+      tocVariant === 'apple-local-nav'
+        ? STICKY_HEADER_HEIGHT_PX +
+          STICKY_SUBNAV_HEIGHT_PX +
+          ANCHOR_BREATHING_ROOM_PX
+        : STICKY_HEADER_HEIGHT_PX + ANCHOR_BREATHING_ROOM_PX;
+
+    const intersectingIds = new Set<string>();
+    let rafId: number | null = null;
+
+    const syncActiveSection = () => {
+      if (programmaticScrollTargetRef.current) {
+        const targetEl = document.getElementById(
+          programmaticScrollTargetRef.current,
+        );
+        if (targetEl) {
+          const dist = Math.abs(
+            targetEl.getBoundingClientRect().top - headerOffsetPx,
+          );
+          if (dist > 32) {
+            return;
+          }
+        }
+        programmaticScrollTargetRef.current = null;
+      }
+
+      const viewportHeight = window.innerHeight || 900;
+      const isAtPageBottom =
+        window.scrollY + viewportHeight >=
+        document.documentElement.scrollHeight - 24;
+
+      const metrics = elements.map((el) => {
+        const rect = el.getBoundingClientRect();
+        return {
+          id: el.id,
+          top: rect.top,
+          bottom: rect.bottom,
+          isIntersecting: intersectingIds.has(el.id),
+        };
+      });
+
+      const nextActive = resolveActiveSectionId({
+        sections: metrics,
+        headerOffsetPx,
+        viewportHeight,
+        isAtPageBottom,
+      });
+
+      if (nextActive) {
+        setActiveChapter(nextActive);
+      }
+    };
+
+    const scheduleSync = () => {
+      if (rafId !== null) return;
+      rafId = window.requestAnimationFrame(() => {
+        rafId = null;
+        syncActiveSection();
+      });
+    };
+
+    const clearProgrammaticLock = () => {
+      programmaticScrollTargetRef.current = null;
+      if (programmaticUnlockTimerRef.current !== null) {
+        window.clearTimeout(programmaticUnlockTimerRef.current);
+        programmaticUnlockTimerRef.current = null;
+      }
+    };
+
     const observer = new IntersectionObserver(
       (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-
-        if (visible.length > 0) {
-          setActiveChapter(visible[0].target.id);
-        }
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            intersectingIds.add(entry.target.id);
+          } else {
+            intersectingIds.delete(entry.target.id);
+          }
+        });
+        syncActiveSection();
       },
-      { rootMargin: '-18% 0px -65% 0px', threshold: 0.05 },
+      {
+        rootMargin: `-${headerOffsetPx}px 0px -55% 0px`,
+        threshold: [0, 0.1, 0.25, 0.5],
+      },
     );
 
     elements.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
-  }, [project.slug, chapters]);
+    window.addEventListener('scroll', scheduleSync, { passive: true });
+    window.addEventListener('wheel', clearProgrammaticLock, { passive: true });
+    window.addEventListener('touchstart', clearProgrammaticLock, {
+      passive: true,
+    });
+    syncActiveSection();
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('scroll', scheduleSync);
+      window.removeEventListener('wheel', clearProgrammaticLock);
+      window.removeEventListener('touchstart', clearProgrammaticLock);
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId);
+      }
+      clearProgrammaticLock();
+    };
+  }, [project.slug, chapters, tocVariant]);
 
   const narrationSegments = useMemo(
     () => buildCaseStudyNarrationSegments(project, readingDepth),
@@ -160,13 +268,11 @@ export function CaseStudyPage({
   }, [project]);
 
   const metrics = useMemo(() => getCaseStudyMetrics(project), [project]);
-  const skimMinutes = useMemo(() => estimateSkimReadMinutes(project), [project]);
 
   const relatedRecommendations = useMemo(
     () => getRelatedProjects(PROJECTS, project.slug, 2),
     [project.slug],
   );
-  const adjacent = getAdjacentProjects(PROJECTS, project.slug);
   const activeIteration =
     project.exploration.iterations[activeIterationIndex] ??
     project.exploration.iterations[0];
@@ -174,18 +280,15 @@ export function CaseStudyPage({
     project.exploration.iterations[project.exploration.iterations.length - 1] ??
     project.exploration.iterations[0];
 
-  const handleLinkClick = (
-    event: React.MouseEvent<HTMLAnchorElement>,
-    path: string,
-  ) => {
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
-      return;
-    }
-    event.preventDefault();
-    onNavigate(path);
-  };
-
   const scrollToChapter = useCallback((id: string) => {
+    programmaticScrollTargetRef.current = id;
+    if (programmaticUnlockTimerRef.current !== null) {
+      window.clearTimeout(programmaticUnlockTimerRef.current);
+    }
+    programmaticUnlockTimerRef.current = window.setTimeout(() => {
+      programmaticScrollTargetRef.current = null;
+      programmaticUnlockTimerRef.current = null;
+    }, 750);
     setActiveChapter(id);
     scrollToElementById(id);
   }, []);
@@ -206,7 +309,10 @@ export function CaseStudyPage({
   const usesSidebarColumn =
     tocVariant === 'notch-rail' ||
     tocVariant === 'macos-sidebar' ||
-    tocVariant === 'tactile-scrubber';
+    tocVariant === 'tactile-scrubber' ||
+    tocVariant === 'chapter-scrubber' ||
+    tocVariant === 'wave-scrubber' ||
+    tocVariant === 'scroll-index';
 
   const chapterScrollMarginClass =
     tocVariant === 'apple-local-nav'
@@ -222,132 +328,23 @@ export function CaseStudyPage({
 
   return (
     <article className="bg-[var(--apple-bg)] pb-20 md:pb-0">
-      {/* Subtle Apple Blue Reading Progress Bar (hidden when Apple Local Ribbon shows its own) */}
-      {tocVariant !== 'apple-local-nav' && (
-        <div
-          aria-hidden="true"
-          className="fixed left-0 right-0 top-[52px] z-30 h-[2px] bg-transparent print:hidden"
-        >
-          <motion.div
-            style={{ scaleX: smoothProgress, transformOrigin: '0% 50%' }}
-            className="h-full bg-[var(--apple-blue)]"
-          />
-        </div>
-      )}
-
       {/* Project Introduction */}
-      <header className="mx-auto max-w-[1160px] px-5 pb-14 pt-12 sm:px-8 sm:pb-16 sm:pt-16">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Breadcrumbs
-            items={[
-              { label: 'Work', href: '/' },
-              { label: project.title },
-            ]}
-            onNavigate={onNavigate}
-          />
-
-          {/* Reading Depth (P2.2) + Reader Comfort Aa (P2.9) */}
-          <div className="flex flex-wrap items-center gap-2.5 print:hidden">
-            <div
-              role="group"
-              aria-label="Case study reading depth"
-              className="apple-segmented !p-0.5"
-            >
-              {(
-                [
-                  { id: 'skim', label: '2-Min Skim' },
-                  { id: 'full', label: 'Full Story' },
-                ] as const
-              ).map((opt) => {
-                const active = readingDepth === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    aria-pressed={active}
-                    onClick={() => handleDepthChange(opt.id)}
-                    className={`apple-segmented-item !min-h-[40px] px-3.5 py-1 text-[12.5px] sm:!min-h-[30px] ${
-                      active
-                        ? 'text-[var(--apple-label-primary)]'
-                        : 'text-[var(--apple-label-secondary)] hover:text-[var(--apple-label-primary)]'
-                    }`}
-                  >
-                    {active && (
-                      <motion.span
-                        layoutId={`reading-depth-pill-${project.slug}`}
-                        transition={SPRING_SEGMENT}
-                        className="apple-pill-shadow absolute inset-0 rounded-full bg-[var(--apple-control-thumb)]"
-                      />
-                    )}
-                    <span className="relative z-10">{opt.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                playTick();
-                const added = toggleShortlistSlug(project.slug);
-                trackAnalyticsEvent(
-                  added ? 'shortlist_added' : 'shortlist_removed',
-                  window.location.pathname,
-                  { slug: project.slug },
-                );
-                showToast({
-                  message: added
-                    ? `Added ${project.title} to shortlist`
-                    : `Removed ${project.title} from shortlist`,
-                  tone: added ? 'success' : 'info',
-                });
-              }}
-              aria-pressed={isShortlisted}
-              aria-label={
-                isShortlisted
-                  ? `Remove ${project.title} from recruiter shortlist`
-                  : `Add ${project.title} to recruiter shortlist`
-              }
-              className={`type-caption inline-flex min-h-[44px] items-center gap-1.5 rounded-full px-3.5 py-1 font-medium transition-all duration-150 active:scale-95 sm:min-h-[36px] ${
-                isShortlisted
-                  ? 'bg-[var(--apple-blue-fill)] text-white'
-                  : 'apple-surface-subtle text-[var(--apple-label-primary)] hover:opacity-90'
-              }`}
-            >
-              {isShortlisted ? (
-                <SFBookmarkFill size={12} />
-              ) : (
-                <SFBookmark size={12} className="text-[var(--apple-label-secondary)]" />
-              )}
-              <span>{isShortlisted ? 'Shortlisted' : 'Shortlist'}</span>
-            </button>
-
-            <ReaderComfortPopover align="right" />
-          </div>
-        </div>
+      <header className="mx-auto max-w-[1160px] px-5 pb-12 pt-5 sm:px-8 sm:pb-14 sm:pt-6">
+        <Breadcrumbs
+          items={[
+            { label: 'Work', href: '/work' },
+            { label: project.title },
+          ]}
+          onNavigate={onNavigate}
+        />
 
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: EASE_APPLE }}
-          className="mt-8"
+          className="mt-7 sm:mt-9"
         >
-          <div className="type-eyebrow flex flex-wrap items-center gap-x-2 text-[var(--apple-label-secondary)]">
-            <span className="text-[var(--apple-link)]">{project.category}</span>
-            <span aria-hidden="true">·</span>
-            <span className="tabular-nums">{project.year}</span>
-            <span aria-hidden="true">·</span>
-            <span className="tabular-nums">
-              {isSkim ? skimMinutes : metrics.readMinutes} min{' '}
-              {isSkim ? 'skim' : 'read'}
-            </span>
-            <span aria-hidden="true">·</span>
-            <span className="tabular-nums">
-              {chapters.length} {isSkim ? 'sections' : 'chapters'}
-            </span>
-          </div>
-
-          <h1 className="type-display measure-title mt-3">
+          <h1 className="font-display max-w-[16ch] text-[clamp(3.25rem,7.2vw,6.25rem)] font-semibold leading-[0.98] tracking-[-0.04em] text-[var(--apple-label-primary)]">
             {project.title}
           </h1>
 
@@ -356,8 +353,8 @@ export function CaseStudyPage({
           </p>
         </motion.div>
 
-        {/* Clean Metadata Strip */}
-        <dl className="mt-10 grid grid-cols-2 gap-6 border-y border-[var(--apple-separator)] py-6 sm:grid-cols-5">
+        {/* Clean 4-Column Metadata Strip */}
+        <dl className="mt-10 grid grid-cols-2 gap-6 border-y border-[var(--apple-separator)] py-6 sm:grid-cols-4">
           <div>
             <dt className="type-caption text-[var(--apple-label-tertiary)]">Role</dt>
             <dd className="mt-1.5 text-[15px] font-medium tracking-[-0.014em] text-[var(--apple-label-primary)]">
@@ -377,40 +374,15 @@ export function CaseStudyPage({
             </dd>
           </div>
           <div>
-            <dt className="type-caption text-[var(--apple-label-tertiary)]">Discipline</dt>
+            <dt className="type-caption text-[var(--apple-label-tertiary)]">Industry</dt>
             <dd className="mt-1.5 text-[15px] font-medium tracking-[-0.014em] text-[var(--apple-label-primary)]">
-              {project.category}
-            </dd>
-          </div>
-          <div className="col-span-2 sm:col-span-1">
-            <dt className="type-caption text-[var(--apple-label-tertiary)]">Included Artifacts</dt>
-            <dd className="mt-1.5 text-[15px] font-medium tabular-nums tracking-[-0.014em] text-[var(--apple-label-primary)]">
-              {metrics.totalArtifactsCount}{' '}
-              {metrics.totalArtifactsCount === 1 ? 'artifact' : 'artifacts'}
-              <span className="block text-[12.5px] font-normal text-[var(--apple-label-tertiary)]">
-                {metrics.visualPlatesCount}{' '}
-                {metrics.visualPlatesCount === 1 ? 'visual plate' : 'visual plates'}
-                {metrics.interactivePrototypesCount > 0
-                  ? ` · ${metrics.interactivePrototypesCount} prototype`
-                  : ''}
-              </span>
+              {project.industry}
             </dd>
           </div>
         </dl>
 
         {/* Genuine Client, Collaborators & Tools Metadata (hidden when fields are absent — P1.9) */}
         <ProjectCreditsSection credits={project.credits} />
-
-        {/* Reusable Apple HIG AudioPlayer synchronized with Reading Depth (P2.2, P2.5) */}
-        <AudioPlayer
-          anchorId={AUDIO_PLAYER_ANCHOR_ID}
-          title={project.title}
-          segments={narrationSegments}
-          idleLabel={isSkim ? 'Listen to 2-min skim' : 'Listen to case study'}
-          onActiveSectionChange={setNarratingChapterId}
-          onJumpToSection={scrollToChapter}
-          onPlaybackChange={setIsAudioPlaying}
-        />
 
         {/* Elevated Cover Visual */}
         <motion.figure
@@ -426,9 +398,9 @@ export function CaseStudyPage({
               setLightboxIndex(0);
             }}
             aria-label={`Inspect ${project.title} cover image full screen`}
-            className="apple-card group relative block w-full overflow-hidden rounded-[28px] bg-[var(--apple-bg-secondary)] text-left"
+            className="apple-card group relative block w-full overflow-hidden rounded-[20px] bg-[var(--apple-bg-secondary)] text-left"
           >
-            <div className="aspect-[16/9] w-full overflow-hidden">
+            <div className="aspect-[16/9] w-full overflow-hidden sm:aspect-[21/10]">
               <img
                 src={project.coverImage}
                 alt={project.coverAlt}
@@ -441,7 +413,7 @@ export function CaseStudyPage({
               />
             </div>
             <span className="apple-pill-shadow absolute bottom-5 right-5 inline-flex items-center gap-1.5 rounded-full bg-[var(--apple-surface-elevated)] px-4 py-2 text-[13px] font-medium text-[var(--apple-label-primary)] transition-transform duration-200 group-hover:scale-[1.03] print:hidden">
-              <SFExpand size={14} className="text-[var(--apple-blue)]" />
+              <Maximize2 size={14} strokeWidth={1.75} aria-hidden="true" className="text-[var(--apple-blue)]" />
               <span>Inspect full size</span>
             </span>
           </button>
@@ -467,7 +439,66 @@ export function CaseStudyPage({
       )}
 
       {/* Editorial Narrative & Adaptive Apple Table of Contents */}
-      <div className="mx-auto max-w-[1160px] px-5 pb-32 pt-4 sm:px-8">
+      <div className="mx-auto max-w-[1160px] px-5 pb-32 pt-2 sm:px-8">
+        {/* Quiet Reading Depth & Text Size controls placed directly before the audio player */}
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
+          <div
+            role="group"
+            aria-label="Case study reading depth"
+            className="inline-flex items-center gap-1"
+          >
+            {(
+              [
+                { id: 'skim', label: '2-Min Skim' },
+                { id: 'full', label: 'Full Story' },
+              ] as const
+            ).map((opt) => {
+              const active = readingDepth === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => handleDepthChange(opt.id)}
+                  className={`relative inline-flex h-8 items-center justify-center rounded-full px-3 text-[12.5px] font-medium tracking-[-0.01em] transition-colors duration-150 ${
+                    active
+                      ? 'text-[var(--apple-label-primary)]'
+                      : 'text-[var(--apple-label-tertiary)] hover:text-[var(--apple-label-primary)]'
+                  }`}
+                >
+                  {active && (
+                    <motion.span
+                      layoutId={`reading-depth-pill-${project.slug}`}
+                      transition={SPRING_SEGMENT}
+                      className="absolute inset-0 rounded-full border border-[var(--apple-separator)]"
+                    />
+                  )}
+                  <span className="relative z-10">{opt.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <ReaderComfortPopover align="right" />
+        </div>
+
+        {/* AudioPlayer positioned directly under Reading Depth so Skim/Full Story syncs naturally */}
+        <div className="mb-10 print:hidden">
+          <AudioPlayer
+            variant="contextual-floating"
+            contextualDisplayMode="inline"
+            autoFloatOnScroll
+            compressed={isBeyondCaseStudy}
+            anchorId={AUDIO_PLAYER_ANCHOR_ID}
+            title={project.title}
+            segments={narrationSegments}
+            idleLabel={isSkim ? 'Listen to 2-min skim' : 'Listen to case study'}
+            onActiveSectionChange={setNarratingChapterId}
+            onJumpToSection={scrollToChapter}
+            onPlaybackChange={setIsAudioPlaying}
+          />
+        </div>
+
         {tocVariant === 'ios-capsule' && (
           <div className="mb-8 print:hidden" data-focus-chrome="true">
             <TableOfContents
@@ -493,7 +524,7 @@ export function CaseStudyPage({
           {usesSidebarColumn && (
             <aside
               data-focus-chrome="true"
-              className="hidden lg:col-span-3 lg:block print:hidden"
+              className="relative z-30 hidden lg:col-span-3 lg:block print:hidden"
             >
               <div className="sticky top-24">
                 <TableOfContents
@@ -524,13 +555,13 @@ export function CaseStudyPage({
                 narratingChapterId === 'overview' ? 'narrating-section-active' : ''
               }`}
             >
-              <div className="rounded-[28px] bg-[var(--apple-bg-secondary)] p-7 sm:p-10">
+              <div className="rounded-[20px] bg-[var(--apple-bg-secondary)] p-7 sm:p-10">
                 <div className="flex flex-wrap items-center gap-2.5">
                   <p className="type-caption text-[var(--apple-link)]">
                     01 · At a glance
                   </p>
                   {narratingChapterId === 'overview' && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--apple-blue)]/10 px-2.5 py-0.5 text-[11px] font-semibold tracking-[-0.01em] text-[var(--apple-link)] transition-opacity duration-300">
+                    <span className="inline-flex items-center gap-1.5 text-[11.5px] font-medium tracking-[-0.008em] text-[var(--apple-link)] transition-opacity duration-300">
                       <MiniAudioEqualizer active={isAudioPlaying} />
                       <span>Listening</span>
                     </span>
@@ -590,7 +621,7 @@ export function CaseStudyPage({
                   02 · {isSkim ? 'Problem & Context' : 'The Challenge'}
                 </p>
                 {narratingChapterId === 'challenge' && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--apple-blue)]/10 px-2.5 py-0.5 text-[11px] font-semibold tracking-[-0.01em] text-[var(--apple-link)]">
+                  <span className="inline-flex items-center gap-1.5 text-[11.5px] font-medium tracking-[-0.008em] text-[var(--apple-link)]">
                     <MiniAudioEqualizer active={isAudioPlaying} />
                     <span>Listening</span>
                   </span>
@@ -609,7 +640,7 @@ export function CaseStudyPage({
                 ))}
               </div>
 
-              <div className="mt-9 rounded-[24px] bg-[var(--apple-bg-secondary)] px-7 py-6 sm:px-8 sm:py-7">
+              <div className="mt-9 rounded-[20px] bg-[var(--apple-bg-secondary)] px-7 py-6 sm:px-8 sm:py-7">
                 <p className="font-display measure-lead text-[19px] font-medium leading-[1.48] tracking-[-0.02em] text-[var(--apple-label-primary)] sm:text-[20px]">
                   “{project.challenge.highlightStatement}”
                 </p>
@@ -641,7 +672,7 @@ export function CaseStudyPage({
                     03 · Understanding the Problem
                   </p>
                   {narratingChapterId === 'understanding' && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--apple-blue)]/10 px-2.5 py-0.5 text-[11px] font-semibold tracking-[-0.01em] text-[var(--apple-link)]">
+                    <span className="inline-flex items-center gap-1.5 text-[11.5px] font-medium tracking-[-0.008em] text-[var(--apple-link)]">
                       <MiniAudioEqualizer active={isAudioPlaying} />
                       <span>Listening</span>
                     </span>
@@ -658,7 +689,7 @@ export function CaseStudyPage({
                   {project.understanding.insights.map((insight, idx) => (
                     <div
                       key={insight.title}
-                      className="rounded-[24px] bg-[var(--apple-bg-secondary)] p-6 sm:p-7"
+                      className="rounded-[20px] bg-[var(--apple-bg-secondary)] p-6 sm:p-7"
                     >
                       <span className="type-caption tabular-nums text-[var(--apple-link)]">
                         Insight 0{idx + 1}
@@ -698,7 +729,7 @@ export function CaseStudyPage({
                     04 · Design Approach
                   </p>
                   {narratingChapterId === 'approach' && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--apple-blue)]/10 px-2.5 py-0.5 text-[11px] font-semibold tracking-[-0.01em] text-[var(--apple-link)]">
+                    <span className="inline-flex items-center gap-1.5 text-[11.5px] font-medium tracking-[-0.008em] text-[var(--apple-link)]">
                       <MiniAudioEqualizer active={isAudioPlaying} />
                       <span>Listening</span>
                     </span>
@@ -761,7 +792,7 @@ export function CaseStudyPage({
                       03 · Key Design Decisions
                     </p>
                     {narratingChapterId === 'exploration' && (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--apple-blue)]/10 px-2.5 py-0.5 text-[11px] font-semibold tracking-[-0.01em] text-[var(--apple-link)]">
+                      <span className="inline-flex items-center gap-1.5 text-[11.5px] font-medium tracking-[-0.008em] text-[var(--apple-link)]">
                         <MiniAudioEqualizer active={isAudioPlaying} />
                         <span>Listening</span>
                       </span>
@@ -791,7 +822,7 @@ export function CaseStudyPage({
                   </div>
 
                   {finalIteration && (
-                    <div className="mt-7 rounded-[24px] bg-[var(--apple-bg-secondary)] p-6 sm:p-7">
+                    <div className="mt-7 rounded-[20px] bg-[var(--apple-bg-secondary)] p-6 sm:p-7">
                       <p className="type-caption text-[var(--apple-link)]">
                         Selected Direction · {finalIteration.label} ({finalIteration.stage})
                       </p>
@@ -817,7 +848,7 @@ export function CaseStudyPage({
                       </span>
                     </p>
                     {narratingChapterId === 'exploration' && (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--apple-blue)]/10 px-2.5 py-0.5 text-[11px] font-semibold tracking-[-0.01em] text-[var(--apple-link)]">
+                      <span className="inline-flex items-center gap-1.5 text-[11.5px] font-medium tracking-[-0.008em] text-[var(--apple-link)]">
                         <MiniAudioEqualizer active={isAudioPlaying} />
                         <span>Listening</span>
                       </span>
@@ -831,7 +862,7 @@ export function CaseStudyPage({
                   </p>
 
                   {/* Rounded iOS Iteration Switcher */}
-                  <div className="mt-9 rounded-[28px] bg-[var(--apple-bg-secondary)] p-6 sm:p-8">
+                  <div className="mt-9 rounded-[20px] bg-[var(--apple-bg-secondary)] p-6 sm:p-8">
                     <div
                       role="tablist"
                       aria-label="Design exploration iterations"
@@ -947,7 +978,7 @@ export function CaseStudyPage({
                   {isSkim ? '04 · Prototype & Visuals' : '06 · The Solution'}
                 </p>
                 {narratingChapterId === 'solution' && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--apple-blue)]/10 px-2.5 py-0.5 text-[11px] font-semibold tracking-[-0.01em] text-[var(--apple-link)]">
+                  <span className="inline-flex items-center gap-1.5 text-[11.5px] font-medium tracking-[-0.008em] text-[var(--apple-link)]">
                     <MiniAudioEqualizer active={isAudioPlaying} />
                     <span>Listening</span>
                   </span>
@@ -979,7 +1010,7 @@ export function CaseStudyPage({
                 {project.solution.highlights.map((highlight) => (
                   <div
                     key={highlight.title}
-                    className="rounded-[24px] bg-[var(--apple-bg-secondary)] p-6 sm:p-7"
+                    className="rounded-[20px] bg-[var(--apple-bg-secondary)] p-6 sm:p-7"
                   >
                     <h3 className="type-headline text-[18px]">
                       {highlight.title}
@@ -1016,7 +1047,7 @@ export function CaseStudyPage({
                               setLightboxIndex(lbIdx);
                             }}
                             aria-label={`Inspect ${item.alt} full screen`}
-                            className="apple-card group relative block w-full overflow-hidden rounded-[24px] bg-[var(--apple-bg-secondary)] text-left"
+                            className="apple-card group relative block w-full overflow-hidden rounded-[20px] bg-[var(--apple-bg-secondary)] text-left"
                           >
                             <div
                               className={
@@ -1037,8 +1068,10 @@ export function CaseStudyPage({
                               />
                             </div>
                             <span className="apple-pill-shadow absolute bottom-4 right-4 inline-flex items-center gap-1.5 rounded-full bg-[var(--apple-surface-elevated)] px-3.5 py-1.5 text-[12.5px] font-medium text-[var(--apple-label-primary)] print:hidden">
-                              <SFExpand
+                              <Maximize2
                                 size={13}
+                                strokeWidth={2}
+                                aria-hidden="true"
                                 className="text-[var(--apple-blue)]"
                               />
                               <span>Zoom</span>
@@ -1074,7 +1107,7 @@ export function CaseStudyPage({
 
               {/* In Skim Mode, offer clean one-click upgrade to Full Story */}
               {isSkim && (
-                <div className="mt-10 flex flex-col items-start justify-between gap-4 rounded-[24px] border border-[var(--apple-separator)] bg-[var(--apple-bg-secondary)] p-6 sm:flex-row sm:items-center print:hidden">
+                <div className="mt-10 flex flex-col items-start justify-between gap-4 rounded-[20px] border border-[var(--apple-separator)] bg-[var(--apple-bg-secondary)] p-6 sm:flex-row sm:items-center print:hidden">
                   <div>
                     <p className="type-headline text-[16px]">
                       Want the complete research, iterations, and reflections?
@@ -1119,7 +1152,7 @@ export function CaseStudyPage({
                     07 · Reflections &amp; Learnings
                   </p>
                   {narratingChapterId === 'reflections' && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--apple-blue)]/10 px-2.5 py-0.5 text-[11px] font-semibold tracking-[-0.01em] text-[var(--apple-link)]">
+                    <span className="inline-flex items-center gap-1.5 text-[11.5px] font-medium tracking-[-0.008em] text-[var(--apple-link)]">
                       <MiniAudioEqualizer active={isAudioPlaying} />
                       <span>Listening</span>
                     </span>
@@ -1132,7 +1165,7 @@ export function CaseStudyPage({
                   {project.reflections.summary}
                 </p>
 
-                <div className="mt-9 rounded-[26px] bg-[var(--apple-bg-secondary)] p-7 sm:p-8">
+                <div className="mt-9 rounded-[20px] bg-[var(--apple-bg-secondary)] p-7 sm:p-8">
                   <p className="type-headline text-[15px]">Key takeaways</p>
                   <ul className="measure-prose mt-4 space-y-3.5 text-[15.5px] leading-[1.58] tracking-[-0.011em] text-[var(--apple-label-secondary)]">
                     {project.reflections.learnings.map((learning) => (
@@ -1158,6 +1191,9 @@ export function CaseStudyPage({
           </div>
         </div>
 
+        {/* Sentinel marking transition beyond case study reading body into next sections */}
+        <div ref={narrativeEndRef} aria-hidden="true" className="h-px w-full" />
+
         {/* Project-scoped verified testimonials (hidden when none exist — P1.10) */}
         <TestimonialsSection
           entries={VERIFIED_TESTIMONIALS}
@@ -1174,57 +1210,6 @@ export function CaseStudyPage({
           />
         </div>
 
-        {/* Previous / Next Project Navigation */}
-        {adjacent && (
-          <nav
-            aria-label="Adjacent case studies"
-            className="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 print:hidden"
-          >
-            <a
-              href={`/work/${adjacent.previous.slug}`}
-              onClick={(e) =>
-                handleLinkClick(e, `/work/${adjacent.previous.slug}`)
-              }
-              className="apple-card group flex flex-col justify-between rounded-[26px] p-7"
-            >
-              <span className="inline-flex items-center gap-1 text-[14px] font-medium text-[var(--apple-link)]">
-                <SFChevronLeft
-                  size={15}
-                  className="transition-transform duration-200 group-hover:-translate-x-0.5"
-                />
-                <span>Previous project</span>
-              </span>
-              <div className="mt-4">
-                <p className="type-title-3">{adjacent.previous.title}</p>
-                <p className="type-footnote mt-1 font-normal text-[var(--apple-label-secondary)]">
-                  {adjacent.previous.category} · {adjacent.previous.year}
-                </p>
-              </div>
-            </a>
-
-            <a
-              href={`/work/${adjacent.next.slug}`}
-              onClick={(e) =>
-                handleLinkClick(e, `/work/${adjacent.next.slug}`)
-              }
-              className="apple-card group flex flex-col justify-between rounded-[26px] p-7 sm:text-right"
-            >
-              <span className="inline-flex items-center gap-1 text-[14px] font-medium text-[var(--apple-link)] sm:justify-end">
-                <span>Next project</span>
-                <SFChevronRight
-                  size={15}
-                  className="transition-transform duration-200 group-hover:translate-x-0.5"
-                />
-              </span>
-              <div className="mt-4">
-                <p className="type-title-3">{adjacent.next.title}</p>
-                <p className="type-footnote mt-1 font-normal text-[var(--apple-label-secondary)]">
-                  {adjacent.next.category} · {adjacent.next.year}
-                </p>
-              </div>
-            </a>
-          </nav>
-        )}
       </div>
 
       {/* Compact Mobile Bottom Reading Bar (<768px — P2.8) */}

@@ -3,43 +3,28 @@ import { AnimatePresence, motion } from 'motion/react';
 import { SITE_CONFIG } from '../data/site';
 import { EASE_APPLE } from '../utils/motion';
 import type { RouteMatch } from '../utils/portfolio';
-import { useShortlistSlugs } from '../utils/shortlist';
 import { playTick } from '../utils/soundEngine';
 import { getPrimaryNavItems } from '../utils/studioNavigation';
-import { GlobalPreferencesPopover } from './GlobalPreferencesPopover';
-import {
-  SFBookmarkFill,
-  SFMagnifyingGlass,
-  SFMenu,
-  SFXmark,
-} from './SFSymbols';
+import { HeaderSettingsMenu } from './HeaderSettingsMenu';
+import { Menu, Search, X } from 'lucide-react';
 
 interface NavbarProps {
   route: RouteMatch;
   onNavigate: (path: string) => void;
+  onPrefetchRoute?: (path: string) => void;
   onOpenCommandPalette: () => void;
-  onOpenShortlist: () => void;
 }
 
 export function Navbar({
   route,
   onNavigate,
+  onPrefetchRoute,
   onOpenCommandPalette,
-  onOpenShortlist,
 }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isMac, setIsMac] = useState(true);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
-  const shortlistedSlugs = useShortlistSlugs();
-  const shortlistCount = shortlistedSlugs.length;
   const navItems = getPrimaryNavItems();
-
-  useEffect(() => {
-    if (typeof navigator !== 'undefined') {
-      setIsMac(/Mac|iPhone|iPad|iPod/i.test(navigator.platform || navigator.userAgent));
-    }
-  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -71,17 +56,15 @@ export function Navbar({
     onNavigate(path);
   };
 
-  const shortcutLabel = isMac ? '⌘K' : 'Ctrl K';
-
   return (
     <header
       data-sticky-nav="true"
       data-focus-chrome="true"
-      className={`sticky top-0 z-40 bg-[var(--apple-surface-glass)] backdrop-blur-xl backdrop-saturate-[180%] transition-[box-shadow,opacity] duration-300 print:hidden ${
+      className={`editorial-nav-surface sticky top-0 z-40 transition-[box-shadow,opacity] duration-300 print:hidden ${
         scrolled ? 'apple-nav-scrolled' : 'border-b border-[var(--apple-separator-subtle)]'
       }`}
     >
-      <div className="mx-auto flex h-[52px] max-w-[1160px] items-center justify-between gap-8 px-5 sm:px-8">
+      <div className="relative mx-auto flex h-[52px] max-w-[1160px] items-center justify-between gap-8 px-5 sm:px-8">
         {/* Zone 1: Single-line Apple Display Wordmark */}
         <a
           href="/"
@@ -91,100 +74,72 @@ export function Navbar({
           {SITE_CONFIG.name}
         </a>
 
-        {/* Zone 2: Primary navigation */}
-        <nav aria-label="Primary navigation" className="hidden items-center gap-7 md:flex">
-          {navItems.map((item) => {
-            const isActive = item.match(route);
-            return (
-              <a
-                key={item.path}
-                href={item.path}
-                onClick={(e) => handleLinkClick(e, item.path)}
-                aria-current={isActive ? 'page' : undefined}
-                className={`apple-link relative shrink-0 whitespace-nowrap py-1 text-[13px] tracking-[-0.008em] ${
-                  isActive
-                    ? 'font-semibold text-[var(--apple-label-primary)]'
-                    : 'font-normal text-[var(--apple-label-secondary)] hover:text-[var(--apple-label-primary)]'
-                }`}
-              >
-                {item.label}
-                {isActive && (
-                  <motion.span
-                    layoutId="apple-nav-active-underline"
-                    transition={{ type: 'spring', stiffness: 420, damping: 36 }}
-                    className="absolute -bottom-[14px] left-0 right-0 h-[1.5px] rounded-full bg-[var(--apple-label-primary)]"
-                  />
-                )}
-              </a>
-            );
-          })}
-        </nav>
-
-        {/* Zone 3: Optional Shortlist Badge + Command Palette + Unified Global Preferences + Primary CTA */}
-        <div className="hidden shrink-0 items-center gap-2 md:flex">
-          {shortlistCount > 0 && (
-            <button
-              type="button"
-              onClick={() => {
-                playTick();
-                onOpenShortlist();
-              }}
-              aria-label={`Open recruiter shortlist (${shortlistCount} saved ${
-                shortlistCount === 1 ? 'project' : 'projects'
-              })`}
-              className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[var(--apple-blue)]/10 px-2.5 text-[12px] font-medium text-[var(--apple-link)] transition-colors duration-150 hover:bg-[var(--apple-blue)]/16"
+        {/* Zone 2: Right-aligned Primary Navigation + Unified Settings Icon at extreme right */}
+        <div className="hidden shrink-0 items-center md:flex">
+          <nav
+            aria-label="Primary navigation"
+            className="flex items-center gap-7"
+          >
+            {navItems.map((item) => {
+              const isActive = item.match(route);
+              return (
+                <a
+                  key={item.path}
+                  href={item.path}
+                  onPointerEnter={() => onPrefetchRoute?.(item.path)}
+                  onFocus={() => onPrefetchRoute?.(item.path)}
+                  onClick={(e) => handleLinkClick(e, item.path)}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`apple-link relative shrink-0 whitespace-nowrap py-1 text-[13px] tracking-[-0.008em] ${
+                    isActive
+                      ? 'font-semibold text-[var(--apple-label-primary)]'
+                      : 'font-normal text-[var(--apple-label-secondary)] hover:text-[var(--apple-label-primary)]'
+                  }`}
+                >
+                  {item.label}
+                  {isActive && (
+                    <motion.span
+                      layoutId="apple-nav-active-underline"
+                      transition={{ type: 'spring', stiffness: 420, damping: 36 }}
+                      className="absolute -bottom-[14px] left-0 right-0 h-[1.5px] rounded-full bg-[var(--apple-label-primary)]"
+                    />
+                  )}
+                </a>
+              );
+            })}
+            <a
+              href="/flex-carousel"
+              onPointerEnter={() => onPrefetchRoute?.('/flex-carousel')}
+              onFocus={() => onPrefetchRoute?.('/flex-carousel')}
+              onClick={(e) => handleLinkClick(e, '/flex-carousel')}
+              aria-current={route.page === 'flex-carousel' ? 'page' : undefined}
+              className={`apple-link relative shrink-0 whitespace-nowrap py-1 text-[13px] tracking-[-0.008em] ${
+                route.page === 'flex-carousel'
+                  ? 'font-semibold text-[var(--apple-label-primary)]'
+                  : 'font-normal text-[var(--apple-label-secondary)] hover:text-[var(--apple-label-primary)]'
+              }`}
             >
-              <SFBookmarkFill size={12} />
-              <span>Shortlist</span>
-              <span className="tabular-nums font-semibold">{shortlistCount}</span>
-            </button>
-          )}
+              Carousel Lab
+              {route.page === 'flex-carousel' && (
+                <motion.span
+                  layoutId="apple-nav-active-underline"
+                  transition={{ type: 'spring', stiffness: 420, damping: 36 }}
+                  className="absolute -bottom-[14px] left-0 right-0 h-[1.5px] rounded-full bg-[var(--apple-label-primary)]"
+                />
+              )}
+            </a>
+          </nav>
 
-          <button
-            type="button"
-            onClick={() => {
-              playTick();
-              onOpenCommandPalette();
-            }}
-            aria-label={`Open command palette (${shortcutLabel})`}
-            title={`Quick search & actions (${shortcutLabel})`}
-            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[var(--apple-control-tonal)] px-2.5 text-[12px] font-medium text-[var(--apple-label-secondary)] transition-colors duration-150 hover:bg-[var(--apple-control-tonal-hover)] hover:text-[var(--apple-label-primary)]"
-          >
-            <SFMagnifyingGlass size={13} />
-            <span className="tabular-nums text-[11px] text-[var(--apple-label-tertiary)]">
-              {shortcutLabel}
-            </span>
-          </button>
+          <span
+            aria-hidden="true"
+            className="mx-4 h-4 w-px bg-[var(--apple-separator)]"
+          />
 
-          <GlobalPreferencesPopover placement="bottom-right" variant="icon" />
-
-          <a
-            href="/contact"
-            onClick={(e) => handleLinkClick(e, '/contact')}
-            className="apple-btn-primary !min-h-[30px] !h-[30px] !px-3.5 !py-0 !text-[12px] !font-medium !tracking-[-0.004em]"
-          >
-            Get in touch
-          </a>
+          <HeaderSettingsMenu size="desktop" />
         </div>
 
-        {/* Mobile controls: Optional Shortlist + Search + Unified Preferences + Menu trigger (44px touch targets) */}
+        {/* Mobile controls: Search + Unified Settings + Menu trigger (44px touch targets) */}
         <div className="flex items-center gap-0.5 md:hidden">
-          {shortlistCount > 0 && (
-            <button
-              type="button"
-              onClick={() => {
-                playTick();
-                setMobileOpen(false);
-                onOpenShortlist();
-              }}
-              aria-label={`Open recruiter shortlist (${shortlistCount} saved)`}
-              className="inline-flex h-11 items-center gap-1 rounded-full bg-[var(--apple-blue)]/10 px-3 text-[12px] font-semibold text-[var(--apple-link)]"
-            >
-              <SFBookmarkFill size={12} />
-              <span className="tabular-nums">{shortlistCount}</span>
-            </button>
-          )}
-
           <button
             type="button"
             onClick={() => {
@@ -195,10 +150,10 @@ export function Navbar({
             aria-label="Open command palette"
             className="apple-btn-icon h-11 w-11 text-[var(--apple-label-primary)]"
           >
-            <SFMagnifyingGlass size={17} />
+            <Search size={17} strokeWidth={1.75} aria-hidden="true" />
           </button>
 
-          <GlobalPreferencesPopover placement="bottom-right" variant="icon" />
+          <HeaderSettingsMenu size="mobile" onOpen={() => setMobileOpen(false)} />
 
           <button
             ref={menuButtonRef}
@@ -209,7 +164,11 @@ export function Navbar({
             aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
             className="apple-btn-icon h-11 w-11 shrink-0 text-[var(--apple-label-primary)]"
           >
-            {mobileOpen ? <SFXmark size={18} /> : <SFMenu size={20} />}
+            {mobileOpen ? (
+              <X size={18} strokeWidth={1.75} aria-hidden="true" />
+            ) : (
+              <Menu size={20} strokeWidth={1.75} aria-hidden="true" />
+            )}
           </button>
         </div>
       </div>
@@ -248,6 +207,21 @@ export function Navbar({
                   </a>
                 );
               })}
+              <a
+                href="/flex-carousel"
+                onClick={(e) => handleLinkClick(e, '/flex-carousel')}
+                aria-current={route.page === 'flex-carousel' ? 'page' : undefined}
+                className={`apple-link flex min-h-[46px] items-center justify-between rounded-2xl px-4 text-[17px] font-medium tracking-[-0.02em] transition-colors ${
+                  route.page === 'flex-carousel'
+                    ? 'bg-[var(--apple-bg-secondary)] text-[var(--apple-label-primary)]'
+                    : 'text-[var(--apple-label-secondary)] hover:bg-[var(--apple-bg-secondary)] hover:text-[var(--apple-label-primary)]'
+                }`}
+              >
+                <span>Carousel Lab</span>
+                {route.page === 'flex-carousel' && (
+                  <span className="text-[13px] font-medium text-[var(--apple-link)]">Current</span>
+                )}
+              </a>
             </nav>
 
             <div className="mt-5 border-t border-[var(--apple-separator-subtle)] pt-5">

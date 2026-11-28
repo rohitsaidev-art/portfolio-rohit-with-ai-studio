@@ -39,6 +39,41 @@ import {
   getComponentCountsByCategory,
 } from './componentLibraryCatalog';
 import {
+  ICON_DESIGN_SPECS,
+  ICON_SIZE_SCALE,
+  INTERACTION_PATTERNS_CATALOG,
+  INTERACTION_STATES_REFERENCE,
+  MATERIAL_PERFORMANCE_GUIDANCE,
+  MATERIAL_SYSTEM_MATRIX,
+  MOTION_LAYERS,
+  MOTION_PLAYGROUND_SPECIMENS,
+  MOTION_VOCABULARY,
+  SOUND_POLICY_SPECS,
+  generateEffectTrackCss,
+} from './behaviourCatalog';
+import {
+  EXPERIMENT_CATEGORIES,
+  EXPERIMENT_STATUSES,
+  captureExperimentSnapshot,
+  createExperiment,
+  createSeedExperiments,
+  deleteExperiment,
+  diffExperimentSnapshots,
+  duplicateExperiment,
+  linkExperimentToDecision,
+  mergeImportedExperiments,
+  parseImportedExperimentsJson,
+  restoreExperimentSnapshot,
+  serializeExperimentsJson,
+  updateExperiment,
+} from './experimentsStore';
+import {
+  DOCUMENTATION_HUB_INDEX,
+  PAGE_TEMPLATES_CATALOG,
+  PATTERN_LIBRARY_ITEMS,
+  searchDocumentationHub,
+} from './studioLibraryCatalog';
+import {
   isFloatingAudioDockVisible,
   isMobileReadingBarVisible,
   resetFloatingAudioDockForTest,
@@ -79,7 +114,11 @@ import {
   skipAudioTime,
   splitIntoSpeechChunks,
 } from './readAloud';
-import { computeScrollTargetTop, resolveScrollBehavior } from './scroll';
+import {
+  computeScrollTargetTop,
+  resolveActiveSectionId,
+  resolveScrollBehavior,
+} from './scroll';
 import {
   isSoundEnabled,
   resetSoundStateForTest,
@@ -136,25 +175,17 @@ import {
 import { auditThemeContrast, contrastRatio } from './a11yContrast';
 import { resolveRouteSeo } from './seo';
 import { getAnalyticsConfig, isAnalyticsPathAllowed } from './analytics';
-import {
-  buildShortlistShareUrl,
-  clearShortlist,
-  getShortlistSlugs,
-  parseShortlistFromSearch,
-  resetShortlistForTest,
-  subscribeShortlist,
-  toggleShortlistSlug,
-} from './shortlist';
 
 const SAMPLE_PROJECTS = [
-  { slug: 'stallsync', title: 'StallSync', filterGroup: 'product' as const },
-  { slug: 'music-discovery-pwa', title: 'Music Discovery PWA', filterGroup: 'interactive' as const },
-  { slug: 'precognition-labs', title: 'Precognition Labs', filterGroup: 'enterprise' as const },
+  { slug: 'stallsync', title: 'StallSync', filterGroup: 'saas' as const },
+  { slug: 'music-discovery-pwa', title: 'Music Discovery PWA', filterGroup: 'mobile-app' as const },
+  { slug: 'precognition-labs', title: 'Precognition Labs', filterGroup: 'web-design' as const },
 ];
 
 test('P0.1: parseRoute retires public /toc-lab and /icons and resolves /design-system as a first-class route', () => {
   assert.deepEqual(parseRoute('/'), { page: 'home' });
-  assert.deepEqual(parseRoute('/work/'), { page: 'home' });
+  assert.deepEqual(parseRoute('/work'), { page: 'work' });
+  assert.deepEqual(parseRoute('/work/'), { page: 'work' });
   assert.deepEqual(parseRoute('/about'), { page: 'about' });
   assert.deepEqual(parseRoute('/contact/'), { page: 'contact' });
   assert.deepEqual(parseRoute('/work/stallsync'), { page: 'case-study', slug: 'stallsync' });
@@ -239,20 +270,21 @@ test('P0.2: UI sound engine defaults to enabled and notifies reactive subscriber
 
 test('P0.3: filterProjects and getProjectFilterCounts return accurate live counts across all real projects', () => {
   assert.equal(filterProjects(SAMPLE_PROJECTS, 'all').length, 3);
-  const interactive = filterProjects(SAMPLE_PROJECTS, 'interactive');
-  assert.equal(interactive.length, 1);
-  assert.equal(interactive[0].slug, 'music-discovery-pwa');
-  assert.equal(filterProjects(SAMPLE_PROJECTS, 'enterprise')[0].slug, 'precognition-labs');
+  const mobile = filterProjects(SAMPLE_PROJECTS, 'mobile-app');
+  assert.equal(mobile.length, 1);
+  assert.equal(mobile[0].slug, 'music-discovery-pwa');
+  assert.equal(filterProjects(SAMPLE_PROJECTS, 'web-design')[0].slug, 'precognition-labs');
 
   const counts = getProjectFilterCounts(PROJECTS);
   assert.equal(counts.all, PROJECTS.length);
   assert.equal(
-    counts.product + counts.interactive + counts.enterprise,
+    counts['web-design'] + counts.saas + counts['mobile-app'] + counts['brand-identity'],
     PROJECTS.length,
   );
-  assert.equal(counts.product, filterProjects(PROJECTS, 'product').length);
-  assert.equal(counts.interactive, filterProjects(PROJECTS, 'interactive').length);
-  assert.equal(counts.enterprise, filterProjects(PROJECTS, 'enterprise').length);
+  assert.equal(counts['web-design'], filterProjects(PROJECTS, 'web-design').length);
+  assert.equal(counts.saas, filterProjects(PROJECTS, 'saas').length);
+  assert.equal(counts['mobile-app'], filterProjects(PROJECTS, 'mobile-app').length);
+  assert.equal(counts['brand-identity'], filterProjects(PROJECTS, 'brand-identity').length);
 });
 
 test('P0.3: reading time and artifact counts reflect all 7 chapters without omitting content or inflating numbers', () => {
@@ -647,9 +679,9 @@ test('P1.11: getRelatedProjects recommends up to 2 relevant projects and never r
     assert.ok(related[0].reason.length > 0);
   }
 
-  // Enterprise project should prioritize the other enterprise project first
-  const enterpriseRelated = getRelatedProjects(PROJECTS, 'precognition-labs', 2);
-  assert.equal(enterpriseRelated[0].project.slug, 'hubapps');
+  // Web Design project should prioritize the other web-design project first
+  const webDesignRelated = getRelatedProjects(PROJECTS, 'precognition-labs', 2);
+  assert.equal(webDesignRelated[0].project.slug, 'curse-of-the-mudradhaar');
 });
 
 test('P1.12: queryProjects composes keyword search (title, discipline, platform, tools), category filter, and sorting', () => {
@@ -681,7 +713,7 @@ test('P1.12: queryProjects composes keyword search (title, discipline, platform,
 
   // Platform + category combined search
   const byPlatformAndCategory = queryProjects(PROJECTS, {
-    filter: 'product',
+    filter: 'saas',
     searchQuery: 'tablet',
     sort: 'featured',
   });
@@ -690,7 +722,7 @@ test('P1.12: queryProjects composes keyword search (title, discipline, platform,
 
   // Non-matching query yields clean empty array
   const empty = queryProjects(PROJECTS, {
-    filter: 'enterprise',
+    filter: 'saas',
     searchQuery: 'mediapipe',
   });
   assert.equal(empty.length, 0);
@@ -1087,44 +1119,16 @@ test('P3.3: privacy-respecting analytics stays disabled without credentials and 
   assert.equal(isAnalyticsPathAllowed('/icons'), false);
 });
 
-test('P3.5: Recruiter Shortlist validates slugs, round-trips shareable URLs, and notifies subscribers cleanly', () => {
-  const parsed = parseShortlistFromSearch(
-    '?shortlist=stallsync,hubapps,invalid-slug,STALLSYNC',
-  );
-  assert.deepEqual(parsed, ['stallsync', 'hubapps']);
-
-  const shareUrl = buildShortlistShareUrl('https://aaravsen.design/', parsed);
-  assert.equal(
-    shareUrl,
-    'https://aaravsen.design/?shortlist=stallsync%2Chubapps',
-  );
-  const roundTripped = parseShortlistFromSearch(new URL(shareUrl).search);
-  assert.deepEqual(roundTripped, ['stallsync', 'hubapps']);
-
-  resetShortlistForTest([]);
-  let updates = 0;
-  const unsubscribe = subscribeShortlist(() => {
-    updates += 1;
+test('Cycle 2 Impl 01: /work route resolves dedicated Work index SEO with CollectionPage JSON-LD', () => {
+  const workSeo = resolveRouteSeo({
+    route: parseRoute('/work'),
+    notes: JOURNAL_NOTES,
+    origin: 'https://aaravsen.design',
   });
-
-  assert.equal(toggleShortlistSlug('stallsync'), true);
-  assert.deepEqual([...getShortlistSlugs()], ['stallsync']);
-  assert.equal(updates, 1);
-
-  assert.equal(toggleShortlistSlug('precognition-labs'), true);
-  assert.deepEqual([...getShortlistSlugs()], ['stallsync', 'precognition-labs']);
-  assert.equal(updates, 2);
-
-  assert.equal(toggleShortlistSlug('stallsync'), false);
-  assert.deepEqual([...getShortlistSlugs()], ['precognition-labs']);
-  assert.equal(updates, 3);
-
-  clearShortlist();
-  assert.deepEqual([...getShortlistSlugs()], []);
-  assert.equal(updates, 4);
-
-  unsubscribe();
-  resetShortlistForTest([]);
+  assert.equal(workSeo.canonicalPath, '/work');
+  assert.equal(workSeo.robots, 'index, follow');
+  assert.equal(workSeo.jsonLd?.['@type'], 'CollectionPage');
+  assert.ok(workSeo.title.includes('Work'));
 });
 
 test('Final QA: unknown project/note slugs and invalid paths fall back safely without broken SEO metadata', () => {
@@ -1314,6 +1318,13 @@ test('Cycle 2 Stage 1: Portfolio Studio first-class navigation, 5-group IA, 16 r
     primaryNav.map((i) => i.label),
     ['Work', 'Notes', 'About', 'Contact', 'Design System'],
   );
+  const workNavItem = primaryNav.find((i) => i.label === 'Work');
+  assert.ok(workNavItem);
+  assert.equal(workNavItem.path, '/work');
+  assert.equal(workNavItem.match({ page: 'work' }), true);
+  assert.equal(workNavItem.match({ page: 'case-study', slug: 'stallsync' }), true);
+  assert.equal(workNavItem.match({ page: 'home' }), false);
+
   const studioNavItem = primaryNav.find((i) => i.label === 'Design System');
   assert.ok(studioNavItem);
   assert.equal(studioNavItem.path, '/design-system');
@@ -1335,11 +1346,8 @@ test('Cycle 2 Stage 1: Portfolio Studio first-class navigation, 5-group IA, 16 r
 
   const liveDestinations = destinations.filter((d) => d.status === 'live');
   const plannedDestinations = destinations.filter((d) => d.status === 'planned');
-  assert.equal(liveDestinations.length, 12);
-  assert.deepEqual(
-    plannedDestinations.map((d) => d.id),
-    ['patterns', 'page-templates', 'experiments', 'documentation'],
-  );
+  assert.equal(liveDestinations.length, 16);
+  assert.equal(plannedDestinations.length, 0);
 
   // 3. Every Studio destination resolves unconditionally and emits noindex, nofollow with zero JSON-LD
   for (const dest of destinations) {
@@ -1394,21 +1402,21 @@ test('Cycle 2 Stage 2: Foundations reference catalog matches src/index.css verba
     );
   }
 
-  // 2. Documented secondary ink matches P3.1 WCAG-calibrated values (#58585d cool-light, #57534b warm-light)
+  // 2. Documented secondary ink matches calibrated Warm/Cool values (#525259 cool-light, #54504a warm-light)
   const secondaryInk = COLOR_TOKENS.find(
     (t) => t.token === '--apple-label-secondary',
   );
   assert.ok(secondaryInk);
-  assert.equal(getTokenValueForMatrix(secondaryInk, 'cool', 'light'), '#58585d');
-  assert.equal(getTokenValueForMatrix(secondaryInk, 'warm', 'light'), '#57534b');
+  assert.equal(getTokenValueForMatrix(secondaryInk, 'cool', 'light'), '#525259');
+  assert.equal(getTokenValueForMatrix(secondaryInk, 'warm', 'light'), '#54504a');
 
   // 3. Contrast evaluator classifies AA/AAA/Fail accurately
-  const highContrast = evaluateContrastPair('#1d1d1f', '#ffffff');
+  const highContrast = evaluateContrastPair('#181715', '#faf8f6');
   assert.equal(highContrast.aaNormal, true);
   assert.equal(highContrast.aaaNormal, true);
   assert.equal(highContrast.grade, 'AAA');
 
-  const btnContrast = evaluateContrastPair('#ffffff', '#0071e3');
+  const btnContrast = evaluateContrastPair('#ffffff', '#1d56c9');
   assert.equal(btnContrast.aaNormal, true);
   assert.equal(btnContrast.grade, 'AA');
 
@@ -1460,6 +1468,9 @@ test('Cycle 2 Stage 2.5: Foundation gap resolution achieves 4-matrix sandbox par
   ] as const;
 
   const requiredParityTokens = [
+    '--editorial-btn-bg:',
+    '--editorial-btn-fg:',
+    '--editorial-accent-warm:',
     '--apple-success:',
     '--apple-warning:',
     '--apple-info:',
@@ -1488,10 +1499,10 @@ test('Cycle 2 Stage 2.5: Foundation gap resolution achieves 4-matrix sandbox par
     }
   }
 
-  // 2. Semantic status tokens exist on :root and .dark as well
+  // 2. Semantic status & editorial tokens exist on :root and .dark as well
   const rootBlock = indexCss.slice(indexCss.indexOf(':root {'), indexCss.indexOf('}', indexCss.indexOf(':root {')) + 1);
   const darkBlock = indexCss.slice(indexCss.indexOf('.dark {'), indexCss.indexOf('}', indexCss.indexOf('.dark {')) + 1);
-  for (const statusToken of ['--apple-success:', '--apple-warning:', '--apple-info:']) {
+  for (const statusToken of ['--editorial-btn-bg:', '--editorial-btn-fg:', '--editorial-accent-warm:', '--apple-success:', '--apple-warning:', '--apple-info:']) {
     assert.ok(rootBlock.includes(statusToken), `:root missing ${statusToken}`);
     assert.ok(darkBlock.includes(statusToken), `.dark missing ${statusToken}`);
   }
@@ -1509,8 +1520,8 @@ test('Cycle 2 Stage 2.5: Foundation gap resolution achieves 4-matrix sandbox par
   assert.equal(indexCss.includes('--radius-sm:'), false);
   assert.equal(indexCss.includes('--container-editorial:'), false);
 
-  // 5. Foundations catalog & gap ledger reflect 4 resolved + 3 retained decisions cleanly
-  assert.equal(COLOR_TOKENS.length, 31);
+  // 5. Foundations catalog & gap ledger reflect 37 color tokens (31 core + 6 editorial) and 4 resolved + 3 retained decisions cleanly
+  assert.equal(COLOR_TOKENS.length, 37);
   assert.equal(
     COLOR_TOKENS.filter((t) => t.sandboxParityGap).length,
     0,
@@ -1555,8 +1566,8 @@ test('Cycle 2 Stage 3: Component Library catalog covers all 8 categories, comple
   const experimentalItems = COMPONENT_LIBRARY_ITEMS.filter(
     (item) => item.status === 'experimental',
   );
-  assert.equal(COMPONENT_LIBRARY_ITEMS.length, 41);
-  assert.equal(productionItems.length, 40);
+  assert.equal(COMPONENT_LIBRARY_ITEMS.length, 44);
+  assert.equal(productionItems.length, 43);
   assert.equal(experimentalItems.length, 1);
   assert.equal(EXCLUDED_COMPONENTS.length, 5);
 
@@ -1615,12 +1626,373 @@ test('Cycle 2 Stage 3: Component Library catalog covers all 8 categories, comple
   });
   assert.ok(audioMatches.some((item) => item.id === 'audio-player-waveform'));
 
+  const cassetteMatches = filterComponentLibraryItems(COMPONENT_LIBRARY_ITEMS, {
+    query: 'CassettePlayer',
+  });
+  assert.ok(cassetteMatches.some((item) => item.id === 'cassette-player'));
+
+  const ipodMatches = filterComponentLibraryItems(COMPONENT_LIBRARY_ITEMS, {
+    query: 'IPodPlayer',
+  });
+  assert.ok(ipodMatches.some((item) => item.id === 'ipod-player'));
+
   const navOnly = filterComponentLibraryItems(COMPONENT_LIBRARY_ITEMS, {
     categoryId: 'navigation',
     status: 'production',
   });
   assert.equal(navOnly.length, counts.navigation);
 });
+
+test('Cycle 2 Final — Workstream A: Interaction states (10), behaviour patterns (9), motion layers (4), CSS generator, and icon/sound specs', () => {
+  const rootDir = path.resolve(import.meta.dirname, '../..');
+  const indexCss = fs.readFileSync(path.join(rootDir, 'src/index.css'), 'utf8');
+
+  // 1. All 10 interaction states present with valid CSS tokens
+  assert.equal(INTERACTION_STATES_REFERENCE.length, 10);
+  assert.deepEqual(
+    INTERACTION_STATES_REFERENCE.map((s) => s.id),
+    [
+      'default',
+      'hover',
+      'focus-visible',
+      'pressed',
+      'active',
+      'selected',
+      'disabled',
+      'loading',
+      'error',
+      'success',
+    ],
+  );
+  for (const st of INTERACTION_STATES_REFERENCE) {
+    for (const tok of st.tokens) {
+      assert.ok(
+        indexCss.includes(`${tok}:`),
+        `Interaction state ${st.id} references missing CSS token: ${tok}`,
+      );
+    }
+  }
+
+  // 2. All 9 interaction patterns reference real files on disk
+  assert.equal(INTERACTION_PATTERNS_CATALOG.length, 9);
+  for (const pat of INTERACTION_PATTERNS_CATALOG) {
+    assert.ok(pat.sourceFiles.length >= 1);
+    for (const file of pat.sourceFiles) {
+      assert.ok(
+        fs.existsSync(path.join(rootDir, file)),
+        `Interaction pattern ${pat.id} references missing file: ${file}`,
+      );
+    }
+  }
+
+  // 3. Motion layers (4), vocabulary, playground specimens (5), icon scale (6), sound policy (4)
+  assert.equal(MOTION_LAYERS.length, 4);
+  assert.equal(
+    MOTION_LAYERS.find((l) => l.id === 'ambient')?.status,
+    'experimental',
+  );
+  assert.ok(MOTION_VOCABULARY.length >= 10);
+  assert.equal(MOTION_PLAYGROUND_SPECIMENS.length, 5);
+  assert.equal(ICON_SIZE_SCALE.length, 6);
+  assert.equal(ICON_DESIGN_SPECS.length, 4);
+  assert.equal(SOUND_POLICY_SPECS.length, 4);
+
+  // 4. Material System Matrix separates production vs experimental honestly
+  assert.equal(MATERIAL_SYSTEM_MATRIX.length, 10);
+  assert.equal(
+    MATERIAL_SYSTEM_MATRIX.filter((m) => m.status === 'production').length,
+    7,
+  );
+  assert.equal(
+    MATERIAL_SYSTEM_MATRIX.filter((m) => m.status === 'experimental').length,
+    3,
+  );
+  assert.equal(MATERIAL_PERFORMANCE_GUIDANCE.length, 4);
+
+  // 5. generateEffectTrackCss produces valid copyable CSS for all 7 tracks (enabled & disabled)
+  const defaults = createDefaultEffectsConfig();
+  for (const track of EFFECT_TRACKS) {
+    const enabledCss = generateEffectTrackCss(
+      track,
+      { ...defaults[track.id], enabled: true },
+      'light',
+      'cool',
+    );
+    assert.ok(enabledCss.includes('{'), `Expected CSS rule for enabled track ${track.id}`);
+    const disabledCss = generateEffectTrackCss(
+      track,
+      { ...defaults[track.id], enabled: false },
+      'dark',
+      'warm',
+    );
+    assert.ok(disabledCss.includes('Disabled'), `Expected disabled comment for ${track.id}`);
+  }
+});
+
+test('Cycle 2 Final — Workstream B: Experiments CRUD, snapshots, diff, safe auto-checkpoint restore, scoped JSON isolation & Decision Log linking', () => {
+  assert.equal(EXPERIMENT_CATEGORIES.length, 8);
+  assert.equal(EXPERIMENT_STATUSES.length, 5);
+
+  const seed = createSeedExperiments();
+  assert.equal(seed.length, 6);
+
+  // Create
+  const { nextExperiments: withCreated, created } = createExperiment(
+    seed,
+    {
+      name: 'Pull Quote Typographic Offset',
+      shortDescription: 'Test subtle 16px indentation on case study pull quotes.',
+      category: 'typography',
+      systemArea: 'Foundations · Typography',
+      rationale: 'Verify scanning clarity inside 60ch prose.',
+      specimenType: 'editorial-measure',
+    },
+    '2026-11-25T10:00:00.000Z',
+  );
+  assert.equal(withCreated.length, 7);
+  assert.equal(created.snapshots.length, 1);
+  assert.equal(created.snapshots[0].versionLabel, 'v1');
+
+  // Update working parameters & capture v2 snapshot
+  const updated = updateExperiment(
+    withCreated,
+    created.id,
+    { parameters: { ...created.parameters, measureCh: 64 } },
+    '2026-11-25T10:05:00.000Z',
+  );
+  const { nextExperiments: withV2, snapshot: v2 } = captureExperimentSnapshot(
+    updated,
+    created.id,
+    'Widened trial measure to 64ch',
+    '2026-11-25T10:06:00.000Z',
+  );
+  assert.ok(v2);
+  assert.equal(v2.versionLabel, 'v2');
+
+  // Diff v1 vs v2
+  const expNow = withV2.find((e) => e.id === created.id)!;
+  const diff = diffExperimentSnapshots(expNow.snapshots[0], expNow.snapshots[1]);
+  const measureRow = diff.find((r) => r.key === 'measureCh');
+  assert.ok(measureRow);
+  assert.equal(measureRow.beforeValue, '60');
+  assert.equal(measureRow.afterValue, '64');
+  assert.equal(measureRow.changed, true);
+
+  // Modify working params without snapshotting, then restore v1 -> must auto-create checkpoint v3
+  const dirty = updateExperiment(
+    withV2,
+    created.id,
+    { parameters: { ...expNow.parameters, measureCh: 68 } },
+    '2026-11-25T10:07:00.000Z',
+  );
+  const restored = restoreExperimentSnapshot(
+    dirty,
+    created.id,
+    expNow.snapshots[0].id,
+    '2026-11-25T10:08:00.000Z',
+  );
+  assert.equal(restored.createdCheckpoint, true);
+  assert.equal(restored.restored?.versionLabel, 'v1');
+  const afterRestore = restored.nextExperiments.find((e) => e.id === created.id)!;
+  assert.equal(afterRestore.parameters.measureCh, 60);
+  assert.equal(afterRestore.snapshots.length, 3);
+  assert.ok(afterRestore.snapshots[2].changeNote.includes('Auto-checkpoint'));
+
+  // Duplicate & delete
+  const { nextExperiments: withDup, duplicated } = duplicateExperiment(
+    restored.nextExperiments,
+    created.id,
+  );
+  assert.ok(duplicated);
+  assert.equal(withDup.length, 8);
+  const afterDelete = deleteExperiment(withDup, duplicated.id);
+  assert.equal(afterDelete.length, 7);
+
+  // Scoped JSON round-trip & strict cross-domain rejection
+  const expJson = serializeExperimentsJson(afterDelete);
+  const parsedExp = parseImportedExperimentsJson(expJson);
+  assert.equal(parsedExp.ok, true);
+  if (parsedExp.ok) {
+    assert.equal(parsedExp.experiments.length, 7);
+    const merged = mergeImportedExperiments(seed, [created], 'merge');
+    assert.equal(merged.length, 7);
+    const replaced = mergeImportedExperiments(seed, [created], 'replace');
+    assert.equal(replaced.length, 1);
+  }
+
+  // Decision Log JSON must be rejected by Experiments importer, and Experiments JSON rejected by Decision Log importer
+  const decisionEntries = upsertDecisionEntry([], {
+    subjectType: 'experiment',
+    subjectId: created.id,
+    experimentId: created.id,
+    title: created.name,
+    variantLabel: 'v2',
+    status: 'approved',
+    paletteContext: 'cool',
+    themeContext: 'light',
+    parameters: { measureCh: 64 },
+    rationale: 'Approved for evaluation',
+  });
+  assert.equal(decisionEntries[0].experimentId, created.id);
+  const linked = linkExperimentToDecision(afterDelete, created.id, decisionEntries[0].id);
+  assert.equal(linked.find((e) => e.id === created.id)?.linkedDecisionId, decisionEntries[0].id);
+
+  const md = generateTokenPromotionMarkdown(decisionEntries);
+  assert.ok(md.includes('Linked Experiment'));
+
+  const decisionJson = serializeDecisionLogJson(decisionEntries);
+  const wrongIntoExp = parseImportedExperimentsJson(decisionJson);
+  assert.equal(wrongIntoExp.ok, false);
+
+  const wrongIntoDecisions = parseImportedDecisionLogJson(expJson);
+  assert.equal(wrongIntoDecisions.ok, false);
+});
+
+test('Cycle 2 Final — Workstream C: Patterns (12), Page Templates (6), Documentation Hub (15) with real files & valid tokens', () => {
+  const rootDir = path.resolve(import.meta.dirname, '../..');
+  const indexCss = fs.readFileSync(path.join(rootDir, 'src/index.css'), 'utf8');
+
+  // 1. Patterns: 12 total, 10 production, 2 proposed (Before/After + Testimonials)
+  assert.equal(PATTERN_LIBRARY_ITEMS.length, 12);
+  assert.equal(
+    PATTERN_LIBRARY_ITEMS.filter((p) => p.maturity === 'production').length,
+    10,
+  );
+  assert.deepEqual(
+    PATTERN_LIBRARY_ITEMS.filter((p) => p.maturity === 'proposed').map((p) => p.id),
+    ['before-after-comparisons', 'testimonials'],
+  );
+
+  for (const pat of PATTERN_LIBRARY_ITEMS) {
+    assert.ok(pat.purpose.length > 15);
+    assert.ok(pat.componentComposition.length >= 2);
+    assert.ok(pat.doDonts.length >= 1);
+    assert.ok(
+      fs.existsSync(path.join(rootDir, pat.sourceReference)),
+      `Pattern ${pat.id} references missing file: ${pat.sourceReference}`,
+    );
+    for (const tok of pat.tokens) {
+      assert.ok(
+        indexCss.includes(`${tok}:`),
+        `Pattern ${pat.id} references missing CSS token: ${tok}`,
+      );
+    }
+  }
+
+  // 2. Page Templates: 7 blueprints with real source files & valid tokens
+  assert.equal(PAGE_TEMPLATES_CATALOG.length, 7);
+  for (const tpl of PAGE_TEMPLATES_CATALOG) {
+    assert.ok(tpl.sectionHierarchy.length >= 3);
+    assert.ok(
+      fs.existsSync(path.join(rootDir, tpl.sourceFile)),
+      `Template ${tpl.id} references missing file: ${tpl.sourceFile}`,
+    );
+    for (const tok of tpl.tokens) {
+      assert.ok(
+        indexCss.includes(`${tok}:`),
+        `Template ${tpl.id} references missing CSS token: ${tok}`,
+      );
+    }
+  }
+
+  // 3. Documentation Hub indexes all 15 other Studio routes with valid files and working search helper
+  assert.equal(DOCUMENTATION_HUB_INDEX.length, 15);
+  for (const doc of DOCUMENTATION_HUB_INDEX) {
+    assert.ok(doc.sourcePointers.length >= 1);
+    for (const src of doc.sourcePointers) {
+      assert.ok(
+        fs.existsSync(path.join(rootDir, src)),
+        `Doc Hub entry ${doc.id} references missing file: ${src}`,
+      );
+    }
+  }
+
+  const expDocs = searchDocumentationHub(DOCUMENTATION_HUB_INDEX, {
+    maturity: 'experimental',
+  });
+  assert.deepEqual(
+    expDocs.map((d) => d.id),
+    ['effects', 'experiments'],
+  );
+
+  const motionSearch = searchDocumentationHub(DOCUMENTATION_HUB_INDEX, {
+    query: 'springs',
+  });
+  assert.ok(motionSearch.some((d) => d.id === 'motion'));
+});
+
+test('Chapter Scrubber TOC: resolveActiveSectionId tracks downward, upward, tall, and bottom sections accurately', () => {
+  // 1. At top of page (still above first section in hero): defaults to first section
+  assert.equal(
+    resolveActiveSectionId({
+      headerOffsetPx: 80,
+      viewportHeight: 900,
+      sections: [
+        { id: 'overview', top: 480, bottom: 920, isIntersecting: false },
+        { id: 'challenge', top: 1020, bottom: 1600, isIntersecting: false },
+        { id: 'understanding', top: 1700, bottom: 2300, isIntersecting: false },
+      ],
+    }),
+    'overview',
+  );
+
+  // 2. Scrolling down: both overview and challenge intersect, challenge crosses anchorY (306)
+  assert.equal(
+    resolveActiveSectionId({
+      headerOffsetPx: 80,
+      viewportHeight: 900,
+      sections: [
+        { id: 'overview', top: -240, bottom: 220, isIntersecting: true },
+        { id: 'challenge', top: 280, bottom: 960, isIntersecting: true },
+        { id: 'understanding', top: 1060, bottom: 1700, isIntersecting: false },
+      ],
+    }),
+    'challenge',
+  );
+
+  // 3. Scrolling back UP: challenge drops below anchorY while overview re-enters
+  assert.equal(
+    resolveActiveSectionId({
+      headerOffsetPx: 80,
+      viewportHeight: 900,
+      sections: [
+        { id: 'overview', top: -120, bottom: 320, isIntersecting: true },
+        { id: 'challenge', top: 380, bottom: 1060, isIntersecting: true },
+        { id: 'understanding', top: 1160, bottom: 1800, isIntersecting: false },
+      ],
+    }),
+    'overview',
+  );
+
+  // 4. Tall section occupying full viewport height
+  assert.equal(
+    resolveActiveSectionId({
+      headerOffsetPx: 80,
+      viewportHeight: 900,
+      sections: [
+        { id: 'overview', top: -2100, bottom: -1600, isIntersecting: false },
+        { id: 'solution', top: -800, bottom: 1400, isIntersecting: true },
+        { id: 'reflections', top: 1500, bottom: 1900, isIntersecting: false },
+      ],
+    }),
+    'solution',
+  );
+
+  // 5. Short final section at page bottom
+  assert.equal(
+    resolveActiveSectionId({
+      headerOffsetPx: 80,
+      viewportHeight: 900,
+      isAtPageBottom: true,
+      sections: [
+        { id: 'solution', top: -600, bottom: 420, isIntersecting: true },
+        { id: 'reflections', top: 500, bottom: 860, isIntersecting: false },
+      ],
+    }),
+    'reflections',
+  );
+});
+
 
 
 

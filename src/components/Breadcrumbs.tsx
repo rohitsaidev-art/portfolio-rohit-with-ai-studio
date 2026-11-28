@@ -34,15 +34,15 @@ export function Breadcrumbs({
 
   return (
     <nav aria-label="Breadcrumb" className={className}>
-      <ol className="type-footnote flex flex-wrap items-center gap-x-2 gap-y-1 font-normal">
+      <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12px] font-normal leading-[1.4] tracking-[-0.006em]">
         {items.map((item, index) => {
           const isLast = index === items.length - 1;
           return (
-            <li key={`${item.label}-${index}`} className="inline-flex items-center gap-2">
+            <li key={`${item.label}-${index}`} className="inline-flex items-center gap-1.5">
               {index > 0 && (
                 <span
                   aria-hidden="true"
-                  className="select-none text-[var(--apple-label-tertiary)]"
+                  className="select-none text-[var(--apple-label-tertiary)] opacity-50"
                 >
                   /
                 </span>
@@ -50,7 +50,7 @@ export function Breadcrumbs({
               {isLast || !item.href ? (
                 <span
                   aria-current={isLast ? 'page' : undefined}
-                  className="font-medium text-[var(--apple-label-primary)]"
+                  className="font-normal text-[var(--apple-label-secondary)]"
                 >
                   {item.label}
                 </span>
@@ -58,7 +58,7 @@ export function Breadcrumbs({
                 <a
                   href={item.href}
                   onClick={(e) => handleClick(e, item.href!)}
-                  className="apple-link rounded-md px-0.5 py-0.5 text-[var(--apple-label-secondary)] hover:text-[var(--apple-link)] hover:underline"
+                  className="apple-link rounded px-0.5 py-0.5 text-[var(--apple-label-tertiary)] transition-colors duration-150 hover:text-[var(--apple-label-primary)]"
                 >
                   {item.label}
                 </a>

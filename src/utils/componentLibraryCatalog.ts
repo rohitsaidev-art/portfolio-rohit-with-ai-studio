@@ -175,19 +175,19 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
       'Primary, outline, tonal, and inline text actions establishing a clear single-primary visual hierarchy across hero sections, case studies, and forms.',
     anatomy: [
       'Pill container (rounded-full, min-height 44px on touch targets)',
-      'Optional leading or trailing 14–16px SF Symbol icon',
+      'Optional leading or trailing 14–16px Lucide icon (strokeWidth={1.75})',
       'Single-line SF Pro Text label (15–16px, tight -0.014em tracking)',
       'Optional .apple-spinner during async submission or sync',
     ],
     variants: [
-      { name: 'Primary (.apple-btn-primary)', usage: 'Single highest-priority CTA per view (Explore Selected Work, Send Inquiry).' },
+      { name: 'Primary (.apple-btn-primary)', usage: 'Single highest-priority Editorial Ink CTA per view (Explore Selected Work, Send Inquiry).' },
       { name: 'Outline (.apple-btn-outline)', usage: 'Paired secondary hero action on light/dark canvas (Get in touch).' },
       { name: 'Tonal (.apple-btn-tonal)', usage: 'Quiet utility actions (Copy email, Print Resume, Secondary sheet actions).' },
       { name: 'Editorial Link (.apple-link)', usage: 'Inline navigation and "Read case study ›" text links without button chrome.' },
     ],
     interactionStates: [
-      { state: 'Default', trigger: 'Resting interactive element', treatment: 'Apple Blue fill (#0071E3) with subtle top specular inset, 1px outline border, or neutral tonal fill.' },
-      { state: 'Hover', trigger: 'Pointer hover on non-disabled button', treatment: 'Primary darkens to --apple-blue-hover with soft blue drop shadow; Outline inverts to solid fill; Tonal shifts to --apple-control-tonal-hover.' },
+      { state: 'Default', trigger: 'Resting interactive element', treatment: 'Editorial Ink fill (--editorial-btn-bg) with warm paper ink (--editorial-btn-fg), 1px outline border, or neutral tonal fill.' },
+      { state: 'Hover', trigger: 'Pointer hover on non-disabled button', treatment: 'Primary shifts to --editorial-btn-hover with grounded ink shadow; Outline subtly washes; Tonal shifts to --apple-control-tonal-hover.' },
       { state: 'Focus-visible', trigger: 'Keyboard Tab navigation', treatment: '2px solid --apple-blue outline with 3px offset (:focus-visible).' },
       { state: 'Pressed / Active', trigger: 'Pointer down or Space/Enter keydown', treatment: 'Micro tactile compression scale(0.97) via --apple-press-scale and deeper fill.' },
       { state: 'Disabled', trigger: 'disabled or aria-disabled="true"', treatment: 'Opacity drops to 0.46 (--apple-disabled-opacity), shadow removed, pointer-events disabled.' },
@@ -202,12 +202,13 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
     accessibility: [
       'Always use <button> for in-page actions and <a> for navigation.',
       'Set aria-busy="true" and keep descriptive text ("Preparing inquiry…") while loading.',
-      'Primary white-on-blue (#FFFFFF on #0071E3) passes 4.68:1 WCAG 2.2 AA contrast.',
+      'Primary Editorial Ink (#FAF8F6 on #181715 light; #141311 on #F4F1EB dark) exceeds 16:1 WCAG AAA contrast.',
     ],
     tokensUsed: [
-      '--apple-blue-fill',
-      '--apple-blue-hover',
-      '--apple-blue-active',
+      '--editorial-btn-bg',
+      '--editorial-btn-fg',
+      '--editorial-btn-hover',
+      '--editorial-btn-active',
       '--apple-blue',
       '--apple-link',
       '--apple-control-tonal',
@@ -225,7 +226,7 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
     usageGuidance: [
       'Restrict each viewport section to one primary filled button to protect visual hierarchy.',
       'Pair primary + outline in hero bands; pair primary + tonal inside drawers and confirmation cards.',
-      'Prefer .apple-link with SFChevronRight for card-level reading affordances instead of repeating blue pills.',
+      'Prefer .apple-link with Lucide ChevronRight for card-level reading affordances instead of repeating filled pills.',
     ],
     doDonts: [
       {
@@ -245,36 +246,36 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
     shortTitle: 'Icon Buttons',
     status: 'production',
     purpose:
-      'Compact circular icon controls and paired utility clusters used for modal dismissal, shortlist bookmarking, preferences, and audio transport.',
+      'Compact circular icon controls and paired utility clusters used for modal dismissal, preferences, search, and audio transport.',
     anatomy: [
       'Circular hit target (h-11 w-11 on mobile, h-8/h-9 on desktop)',
-      'Centered 14–18px SF Symbol SVG icon',
-      'Optional tonal surface or frosted floating ring (for card bookmark overlay)',
+      'Centered 14–18px Lucide SVG icon (strokeWidth={1.75})',
+      'Optional tonal surface or frosted floating ring',
       'Optional grouped container with 6–8px gap for paired utility actions',
     ],
     variants: [
       { name: 'Ghost Icon (.apple-btn-icon)', usage: 'Navbar utility buttons, dismiss icons, and popover triggers.' },
       { name: 'Tonal Icon', usage: 'Modal/drawer close buttons and lightbox zoom controls.' },
-      { name: 'Floating Overlay Toggle', usage: 'ProjectCard bookmark toggle with .apple-pill-shadow and selected blue fill.' },
+      { name: 'Active Toggle Icon', usage: 'Binary icon toggle with .apple-pill-shadow and selected accent fill.' },
       { name: 'Action Group', usage: 'Zoom -/100%/+ pill group in Lightbox or Navbar utility cluster.' },
     ],
     interactionStates: [
       { state: 'Default', trigger: 'Resting icon control', treatment: 'Transparent or tonal circular fill with secondary/primary label ink.' },
-      { state: 'Hover', trigger: 'Pointer hover', treatment: 'Circular --apple-control-hover wash; floating bookmark scales to 1.05.' },
+      { state: 'Hover', trigger: 'Pointer hover', treatment: 'Circular --apple-control-hover wash; floating controls scale to 1.05.' },
       { state: 'Focus-visible', trigger: 'Keyboard focus', treatment: '2px solid --apple-blue focus ring with 3px offset.' },
       { state: 'Pressed / Active', trigger: 'Pointer press', treatment: 'Darker --apple-control-active fill and scale(0.95) detent.' },
-      { state: 'Selected', trigger: 'aria-pressed="true" (Shortlist bookmark)', treatment: 'Filled --apple-blue-fill circle with white SFBookmarkFill.' },
+      { state: 'Selected', trigger: 'aria-pressed="true" (Audio / Mute toggle)', treatment: 'Filled --apple-blue-fill circle with white icon ink.' },
       { state: 'Disabled', trigger: 'disabled attribute (e.g., Lightbox 100% zoom out)', treatment: 'Opacity 0.46 (--apple-disabled-opacity), cursor not-allowed.' },
     ],
     behavior:
-      'Executes a single unambiguous utility action or toggles persistent binary state (bookmark saved/unsaved), playing subtle Web Audio playTick() feedback.',
+      'Executes a single unambiguous utility action or toggles persistent binary state, playing subtle Web Audio playTick() feedback.',
     animation:
       '160ms ease background/color transition + 200ms --ease-apple active scale.',
     responsiveBehavior:
       'Always expands to 44×44px (h-11 w-11) on mobile viewports (<640px) to satisfy Apple HIG and WCAG target size guidelines, tightening to 32–36px on desktop.',
     accessibility: [
       'Every icon-only button MUST provide a specific aria-label (never generic "Button" or "Action").',
-      'Toggle icon buttons (Shortlist, Mute) must expose aria-pressed.',
+      'Toggle icon buttons (Mute, Active utility toggles) must expose aria-pressed.',
       'Provide title tooltips for desktop keyboard shortcut hints where helpful.',
     ],
     tokensUsed: [
@@ -288,17 +289,17 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
     ],
     implementation: {
       sourcePath: 'src/components/Navbar.tsx',
-      exportName: '.apple-btn-icon / ProjectCard shortlist trigger',
+      exportName: '.apple-btn-icon',
       cssClasses: ['.apple-btn-icon', '.apple-pill-shadow'],
-      snippet: `<button type="button" aria-label="Close panel" className="apple-btn-icon h-11 w-11 sm:h-9 sm:w-9 bg-[var(--apple-control-tonal)]">\n  <SFXmark size={15} />\n</button>`,
+      snippet: `<button type="button" aria-label="Close panel" className="apple-btn-icon h-11 w-11 sm:h-9 sm:w-9 bg-[var(--apple-control-tonal)]">\n  <X size={15} strokeWidth={1.75} aria-hidden="true" />\n</button>`,
     },
     usageGuidance: [
-      'Reserve icon-only buttons for universally recognized glyphs (Close, Search, Bookmark, Zoom, Menu, Audio).',
+      'Reserve icon-only buttons for universally recognized glyphs (Close, Search, Zoom, Menu, Audio).',
       'Pair adjacent icon controls inside a shared tonal pill when they adjust the same parameter (e.g., Lightbox zoom).',
     ],
     doDonts: [
       {
-        doText: 'Give every bookmark icon a project-specific label like "Save StallSync to recruiter shortlist".',
+        doText: 'Give every icon control a specific label like "Open search" or "Mute UI audio".',
         dontText: 'Render multiple icon buttons with identical vague labels or missing aria-label attributes.',
       },
       {
@@ -441,12 +442,12 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
     purpose:
       'Live keyword filtering input (Selected Work & Notes) and native dropdown select (Sort order & Contact timeline) styled on the shared .apple-input token foundation.',
     anatomy: [
-      'Search: Rounded pill .apple-input with leading SFMagnifyingGlass, native text field, and conditional SFXmark clear button',
-      'Select: Native <select> with appearance-none, .apple-input styling, and pointer-events-none SFChevronDown indicator',
+      'Search: Rounded pill .apple-input with leading Lucide Search icon, native text field, and conditional X clear button',
+      'Select: Native <select> with appearance-none, .apple-input styling, and pointer-events-none ChevronDown indicator',
       'Accessible <label> or explicit aria-label',
     ],
     variants: [
-      { name: 'Pill Search Input', usage: 'HomePage Selected Work and NotesPage instant client-side filtering.' },
+      { name: 'Pill Search Input', usage: 'WorkPage archive and NotesPage instant client-side filtering.' },
       { name: 'Inline Sort Select', usage: 'Compact rounded-full sort selector paired alongside search.' },
       { name: 'Form Select Field', usage: 'Full-width 46px rounded-[14px] selector in ContactPage.' },
     ],
@@ -479,14 +480,14 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
       '--apple-error-ring',
     ],
     implementation: {
-      sourcePath: 'src/pages/HomePage.tsx',
-      exportName: 'Selected Work Search & ContactPage Select (.apple-input)',
+      sourcePath: 'src/pages/WorkPage.tsx',
+      exportName: 'Work Index Search & ContactPage Select (.apple-input)',
       cssClasses: ['.apple-input'],
       snippet: `<input type="search" aria-label="Search case studies" placeholder="Search title, discipline, or tool…" className="apple-input min-h-[40px] rounded-full py-2 pl-10 pr-9 text-[13.5px]" />`,
     },
     usageGuidance: [
       'Use pill search fields for live client-side filtering when collections exceed ~4 items.',
-      'Use native <select> with SFChevronDown when choosing from 4–8 structured presets.',
+      'Use native <select> with Lucide ChevronDown when choosing from 4–8 structured presets.',
     ],
     doDonts: [
       {
@@ -627,7 +628,7 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
     anatomy: [
       'Zone 1: SF Pro Display wordmark linking to /',
       'Zone 2: Primary navigation links (Work, Notes, About, Contact, Design System) with animated active underline',
-      'Zone 3: Conditional Shortlist counter, Command Palette (⌘K) trigger, GlobalPreferencesPopover, and compact "Get in touch" CTA',
+      'Zone 3: Command Palette (⌘K) trigger, GlobalPreferencesPopover, and compact "Get in touch" CTA',
       'Mobile (<768px): 44px icon controls + collapsible #mobile-nav-drawer with Escape close',
     ],
     variants: [
@@ -646,7 +647,7 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
     animation:
       'Spring underline (stiffness 420, damping 36) across desktop links; 280ms --ease-apple vertical reveal for mobile drawer.',
     responsiveBehavior:
-      'Full 3-zone bar at md (768px+); collapses Zone 2 links into the hamburger drawer below 768px while keeping Search, Preferences, and Shortlist accessible at 44px tap sizes.',
+      'Full 3-zone bar at md (768px+); collapses Zone 2 links into the hamburger drawer below 768px while keeping Search and Preferences accessible at 44px tap sizes.',
     accessibility: [
       'Wraps links in <nav aria-label="Primary navigation"> with aria-current="page" on active route.',
       'Mobile menu button exposes aria-expanded, aria-controls="mobile-nav-drawer", and restores focus on Escape.',
@@ -665,11 +666,11 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
       sourcePath: 'src/components/Navbar.tsx',
       exportName: 'Navbar',
       cssClasses: ['.apple-nav-scrolled', '.apple-link', '.apple-btn-icon', '.apple-btn-primary'],
-      snippet: `<Navbar route={route} onNavigate={navigate} onOpenCommandPalette={openCmd} onOpenShortlist={openShortlist} />`,
+      snippet: `<Navbar route={route} onNavigate={navigate} onOpenCommandPalette={openCmd} />`,
     },
     usageGuidance: [
       'Keep primary navigation strictly limited to the 5 core routes (Work, Notes, About, Contact, Design System) so the 52px bar never crowds.',
-      'Show the Shortlist pill only when shortlistedSlugs.length > 0 so idle chrome stays quiet.',
+      'Use the brand wordmark for Home (/) and route the Work link to the dedicated /work index.',
     ],
     doDonts: [
       {
@@ -725,7 +726,7 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
       sourcePath: 'src/components/Breadcrumbs.tsx',
       exportName: 'Breadcrumbs',
       cssClasses: ['.type-footnote', '.apple-link'],
-      snippet: `<Breadcrumbs items={[{ label: 'Work', href: '/' }, { label: 'StallSync' }]} onNavigate={onNavigate} />`,
+      snippet: `<Breadcrumbs items={[{ label: 'Work', href: '/work' }, { label: 'StallSync' }]} onNavigate={onNavigate} />`,
     },
     usageGuidance: [
       'Place at the top-left of detail views paired opposite reading controls.',
@@ -741,39 +742,42 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
   {
     id: 'table-of-contents',
     categoryId: 'navigation',
-    name: 'Table of Contents (5 Architectures)',
+    name: 'Table of Contents (6 Architectures)',
     shortTitle: 'Table of Contents',
     status: 'production',
     purpose:
-      'Scroll-aware Case Study chapter navigation supporting five selectable Apple-grade architectures synced with reading progress and active AudioPlayer narration.',
+      'Scroll-aware Case Study chapter navigation supporting six selectable Apple-grade architectures synced with reading progress and active AudioPlayer narration.',
     anatomy: [
       'Chapter index numbers (01–07, tabular-nums) and concise chapter titles',
       'Active chapter highlight + visited completion indicators',
-      'Live reading progress indicator (hairline bar, circular SVG ring, percentage, or detent rail)',
-      'Optional SFWaveform badge indicating the chapter currently being narrated',
+      'Live reading progress indicator (hairline bar, circular SVG ring, percentage, detent rail, or wave ticks)',
+      'Optional Lucide AudioLines badge indicating the chapter currently being narrated',
     ],
     variants: [
       { name: 'Notch Rail (notch-rail)', usage: 'Quiet hairline margin notches that expand smoothly on hover/focus.' },
-      { name: 'macOS Rail (macos-sidebar)', usage: 'Structured left inspector panel with SF Symbols per chapter and completion checks.' },
+      { name: 'macOS Rail (macos-sidebar)', usage: 'Structured left inspector panel with Lucide icons per chapter and completion checks.' },
       { name: 'Detent Scrubber (tactile-scrubber)', usage: 'Draggable vertical ARIA slider rail with tactile playTick() chapter detents.' },
       { name: 'Local Ribbon (apple-local-nav)', usage: 'Sticky horizontal frosted chapter bar anchored beneath the global navbar.' },
       { name: 'iOS Capsule (ios-capsule)', usage: 'Floating circular-progress pill that opens an iOS chapter popover sheet.' },
+      { name: 'Chapter Scrubber (chapter-scrubber)', usage: 'Minimalist vertical tick rail showing only the active heading beside an Editorial Cobalt (--apple-blue) tick at rest and revealing all headings in place on hover or focus.' },
+      { name: 'Scroll Index (scroll-index)', usage: 'Kokonut UI proportional vertical tick rail with a continuous reading playhead, Gaussian dock-swell pointer magnification, direct drag scrubbing with flick momentum snap, and a brief section-entry label flash.' },
     ],
     interactionStates: [
       { state: 'Default', trigger: 'Unvisited chapter', treatment: 'Muted secondary/tertiary ink or collapsed hairline notch.' },
-      { state: 'Hover', trigger: 'Pointer hover', treatment: 'Notch rail expands labels; sidebar items wash with --apple-control-hover.' },
-      { state: 'Selected', trigger: 'Active chapter', treatment: 'Apple Blue notch/fill or elevated --apple-control-thumb highlight.' },
-      { state: 'Focus-visible', trigger: 'Keyboard Tab / Arrow Up & Down (Scrubber)', treatment: '2px --apple-blue focus outline; scrubber rail responds to vertical arrow keys.' },
+      { state: 'Hover', trigger: 'Pointer hover', treatment: 'Notch rail and Chapter Scrubber expand smoothly in place to reveal all section headings without layout shift.' },
+      { state: 'Selected', trigger: 'Active chapter', treatment: 'Editorial Cobalt notch/tick (--apple-blue) or elevated --apple-control-thumb highlight.' },
+      { state: 'Focus-visible', trigger: 'Keyboard Tab / Arrow Up & Down (Scrubbers)', treatment: '2px --apple-blue focus outline; scrubber rails support vertical arrow key navigation.' },
     ],
     behavior:
       'Jumps smoothly to the selected chapter respecting --scroll-offset-header (84px) or --scroll-offset-header-subnav (136px). Promoted variant persists from TOC Lab.',
     animation:
-      'Notch bar width 300ms --ease-apple; Local Ribbon active pill uses SPRING_SEGMENT; iOS Capsule sheet uses 220ms scale/opacity reveal.',
+      'Notch bar width 300ms --ease-apple; Local Ribbon active pill uses SPRING_SEGMENT; iOS Capsule sheet uses 220ms scale/opacity reveal; Chapter Scrubber uses subtle 200–220ms editorial ease transitions with zero bounce.',
     responsiveBehavior:
       'Desktop (>=768px) displays the chosen sidebar/ribbon/capsule variant; mobile (<768px) hands off to MobileReadingBar so prose retains full width.',
     accessibility: [
       'Each architecture renders inside a labeled <nav> with native <button> controls.',
       'Detent Scrubber exposes role="slider", aria-orientation="vertical", aria-valuenow, and aria-valuetext.',
+      'Chapter Scrubber marks the active section with aria-current="location", supports ArrowUp/ArrowDown/Home/End navigation, expands on focus-within, and respects prefers-reduced-motion.',
       'iOS Capsule exposes aria-expanded on its trigger button.',
     ],
     tokensUsed: [
@@ -789,8 +793,8 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
     implementation: {
       sourcePath: 'src/components/TableOfContents.tsx',
       exportName: 'TableOfContents',
-      cssClasses: ['.apple-ios-bar', '.apple-pill-shadow'],
-      snippet: `<TableOfContents variant="macos-sidebar" chapters={chapters} activeChapter={active} readingProgress={0.45} onSelectChapter={scrollToChapter} />`,
+      cssClasses: ['.toc-scrubber', '.toc-scrubber-tick-active', '.apple-ios-bar', '.apple-pill-shadow'],
+      snippet: `<TableOfContents variant="chapter-scrubber" chapters={chapters} activeChapter={active} readingProgress={0.45} onSelectChapter={scrollToChapter} />`,
     },
     usageGuidance: [
       'Use macOS Rail or Notch Rail for deep multi-chapter case studies with a sidebar column.',
@@ -813,7 +817,7 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
       'Keyboard-first global launcher searching public Case Studies, Case Study Chapters, Notes, Pages, and Quick Actions while strictly excluding private /design-system routes.',
     anatomy: [
       'Dimmed backdrop + centered .apple-modal dialog (max-w-[600px], rounded-[24px])',
-      'Sticky search header with SFMagnifyingGlass, instant query input, and Esc/clear controls',
+      'Sticky search header with Lucide Search icon, instant query input, and Esc/clear controls',
       'Grouped scrollable results (Case Studies, Notes, Chapters, Pages, Actions)',
       'Footer keyboard hint bar (↑↓ navigate · ↵ select · Esc close)',
     ],
@@ -829,7 +833,7 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
       { state: 'Focus-visible', trigger: 'Auto-focused search input on open', treatment: 'Clean borderless modal search field; Tab trapped inside dialog.' },
     ],
     behavior:
-      'Opens via Cmd+K / Ctrl+K or the Navbar search pill; executes navigation, copies email, toggles Appearance/Sound/Reader Comfort, or opens Shortlist/Colophon drawers.',
+      'Opens via Cmd+K / Ctrl+K or the Navbar search pill; executes navigation, copies email, toggles Appearance/Sound/Reader Comfort, or opens the Colophon drawer.',
     animation:
       'Backdrop fade 180ms + modal scale 0.97→1 (220ms --ease-apple); instant under prefers-reduced-motion.',
     responsiveBehavior:
@@ -851,7 +855,7 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
       sourcePath: 'src/components/CommandPalette.tsx',
       exportName: 'CommandPalette',
       cssClasses: ['.apple-modal', '.apple-btn-icon'],
-      snippet: `<CommandPalette open={open} onClose={close} onNavigate={navigate} onOpenShortlist={openShortlist} onOpenColophon={openColophon} />`,
+      snippet: `<CommandPalette open={open} onClose={close} onNavigate={navigate} onOpenColophon={openColophon} />`,
     },
     usageGuidance: [
       'Keep Command Palette results strictly synced with public routes via buildPublicCommandPaletteItems().',
@@ -931,7 +935,7 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
       'Context-aware floating frosted pill that reveals after scrolling past 480px and automatically shifts upward whenever the floating AudioPlayer dock or MobileReadingBar is active.',
     anatomy: [
       'Frosted .apple-ios-bar pill (h-11 rounded-full)',
-      'SFArrowUp icon (14px) with subtle upward hover nudge',
+      'Lucide ArrowUp icon (14px, strokeWidth={1.75}) with subtle upward hover nudge',
       'Desktop-only "Top" text label (hidden on mobile to stay compact)',
     ],
     variants: [
@@ -989,33 +993,32 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
     shortTitle: 'Project Card',
     status: 'production',
     purpose:
-      'Signature Selected Work showcase container presenting project photography, unboxed metadata, editorial title, summary, role attribution, and an independent Recruiter Shortlist bookmark toggle.',
+      'Signature portfolio project showcase container presenting project photography, unboxed metadata, editorial title, summary, and role attribution across Home horizontal rail and Work archive grids.',
     anatomy: [
-      'Outer relative <motion.article> with independent top-right Shortlist bookmark button (prevents nested interactive controls)',
-      'Elevated .apple-card <a> surface (rounded-[28px])',
-      'Media frame with explicit width/height, lazy/eager loading, graceful fallback, and 1.03 hover zoom',
-      'Text column: unboxed Category · Year row, SF Pro Display title, summary, hairline footer with role + "Read case study ›"',
+      'Outer semantic <article> / <motion.article> container wrapping a single elevated .apple-card <a> link',
+      'Media frame with explicit width/height, eager/lazy loading, graceful fallback, and 1.03 hover zoom',
+      'Text column: unboxed Category · Year row, SF Pro Display title, concise summary, hairline footer with role + "Read ›"',
     ],
     variants: [
-      { name: 'Featured (variant="featured")', usage: '12-column asymmetric split (7 media / 5 editorial copy) for the lead showcase study.' },
-      { name: 'Standard (variant="standard")', usage: 'Vertical 4:3 card used inside the 2-column Selected Work grid.' },
-      { name: 'Wide (variant="wide")', usage: 'Reversed 12-column horizontal feature band (copy left / media right).' },
+      { name: 'Rail (variant="rail")', usage: 'Compact horizontal scroll card (16:10 media, rounded-[24px]) used in FeaturedWorkRail on Home.' },
+      { name: 'Featured (variant="featured")', usage: '12-column asymmetric split (7 media / 5 editorial copy) for the lead showcase study on /work.' },
+      { name: 'Standard (variant="standard")', usage: 'Vertical 4:3 card used inside the 2-column Work archive grid.' },
+      { name: 'Wide (variant="wide")', usage: 'Reversed 12-column horizontal feature band (copy left / media right) closing /work.' },
     ],
     interactionStates: [
       { state: 'Default', trigger: 'Resting card', treatment: 'Elevated --apple-surface-elevated with multi-layer --shadow-apple-card.' },
       { state: 'Hover', trigger: 'Pointer hover on link card', treatment: 'Lifts -4px with --shadow-apple-card-hover, image scales 1.03, chevron slides +2–4px.' },
       { state: 'Pressed / Active', trigger: 'Pointer down', treatment: 'Settles to translateY(-1px) scale(0.992).' },
-      { state: 'Focus-visible', trigger: 'Keyboard Tab', treatment: '2px --apple-blue outline around card link and independent focus stop on bookmark button.' },
-      { state: 'Selected', trigger: 'Shortlist bookmark saved', treatment: 'Bookmark button turns solid --apple-blue-fill with white SFBookmarkFill.' },
+      { state: 'Focus-visible', trigger: 'Keyboard Tab', treatment: '2px --apple-blue outline around card link.' },
     ],
     behavior:
-      'Clicking the card navigates to /work/:slug (supporting Cmd/Ctrl+Click); clicking the bookmark button toggles shortlist state without triggering card navigation and fires a non-stacking toast.',
+      'Clicking the card navigates to /work/:slug while preserving native Cmd/Ctrl+Click new-tab behavior.',
     animation:
-      '420ms --ease-apple card elevation lift; 700ms image zoom; 540–560ms viewport reveal on scroll. Hover transforms zeroed under prefers-reduced-motion.',
+      '420ms --ease-apple card elevation lift; 700ms image zoom; 540–560ms viewport reveal on archive grids. Rail cards remain immediately visible for smooth horizontal scrolling.',
     responsiveBehavior:
-      'Featured and Wide variants stack vertically (16:10 top image) below lg (1024px) and expand to 12-column splits on desktop; bookmark button scales from 44px mobile to 36px desktop.',
+      'Rail cards span uniform widths inside the horizontal scroll track; Featured and Wide variants stack vertically (16:10 top image) below lg (1024px) and expand to 12-column splits on desktop.',
     accessibility: [
-      'Bookmark <button> sits as a sibling to the <a> card link (never nested inside <a>) for valid HTML and clean keyboard Tab order.',
+      'Entire card is a single clean <a> link with zero nested interactive controls.',
       'Images declare explicit width/height and descriptive coverAlt.',
       'Fallback block displays title and category cleanly if an image fails to load.',
     ],
@@ -1027,26 +1030,25 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
       '--apple-bg-tertiary',
       '--apple-separator-subtle',
       '--apple-link',
-      '--apple-blue-fill',
     ],
     implementation: {
       sourcePath: 'src/components/ProjectCard.tsx',
       exportName: 'ProjectCard',
-      cssClasses: ['.apple-card', '.apple-pill-shadow', '.type-title-2', '.type-title-3'],
-      snippet: `<ProjectCard project={PROJECTS[0]} onNavigate={onNavigate} variant="featured" index={0} />`,
+      cssClasses: ['.apple-card', '.type-title-2', '.type-title-3'],
+      snippet: `<ProjectCard project={PROJECTS[0]} onNavigate={onNavigate} variant="rail" index={0} />`,
     },
     usageGuidance: [
-      'Use featured for the first lead project on Home, standard for 2-column grids, and wide to pace longer indexes.',
+      'Use rail inside FeaturedWorkRail on Home, featured for the lead project on /work, standard for 2-column grids, and wide to pace the Work archive.',
       'Never wrap category or year metadata inside pill badges—preserve clean middot typographic separators.',
     ],
     doDonts: [
       {
-        doText: 'Keep the bookmark button as an absolute sibling outside the <a> link.',
-        dontText: 'Nest a <button> inside an <a> tag, which breaks keyboard activation and HTML semantics.',
+        doText: 'Keep each card as a clean, uncluttered single link surface.',
+        dontText: 'Overlay bookmark buttons, heavy gradients, or multi-row tag clouds on top of project photography.',
       },
       {
-        doText: 'Keep card descriptions concise (1–2 sentences) so paired grid cards align cleanly.',
-        dontText: 'Overlay heavy gradients or multi-row tag clouds on top of project photography.',
+        doText: 'Keep card descriptions concise (1–2 sentences) so paired grid and rail cards align cleanly.',
+        dontText: 'Let unconstrained paragraphs create uneven heights across horizontal rail cards.',
       },
     ],
     supportsViewportPreview: true,
@@ -1358,13 +1360,13 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
     anatomy: [
       'Bound <label htmlFor> (.type-footnote, primary ink)',
       '.apple-input field (min-h-[46px], rounded-[14px] or [16px] for textarea)',
-      'Optional trailing SFChevronDown for native <select>',
+      'Optional trailing Lucide ChevronDown for native <select>',
       'Conditional inline error text (role="alert", id linked via aria-describedby, --apple-error ink)',
     ],
     variants: [
       { name: 'Text Input', usage: 'Name or general single-line input (autoComplete="name").' },
       { name: 'Email Input', usage: 'Email address with type="email" and autoComplete="email".' },
-      { name: 'Select Dropdown', usage: 'Expected timeline selector with custom SFChevronDown chevron.' },
+      { name: 'Select Dropdown', usage: 'Expected timeline selector with custom Lucide ChevronDown chevron.' },
       { name: 'Textarea', usage: 'Multi-line project brief (rows={5}, 1.55 line-height).' },
     ],
     interactionStates: [
@@ -1426,7 +1428,7 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
       'Elevated .apple-card-static sheet (rounded-[28px])',
       'Validated input grid + engagement selector + timeline select + brief textarea',
       'Submit footer pairing .apple-btn-primary (with .apple-spinner while submitting) and response-time note',
-      'Confirmation state: soft blue SFCheckmark badge, focusable confirmation <h2>, summary <dl>, "Open in Mail" + "Send another note"',
+      'Confirmation state: AnimatedCheckIcon badge, focusable confirmation <h2>, summary <dl>, "Open in Mail" + "Send another note"',
     ],
     variants: [
       { name: 'Active Inquiry Form', usage: 'Interactive input state with inline error validation on submit.' },
@@ -1542,11 +1544,11 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
   {
     id: 'slide-over-drawers',
     categoryId: 'overlays-disclosures',
-    name: 'Slide-Over Drawers (Shortlist & Colophon)',
+    name: 'Slide-Over Drawers (Colophon)',
     shortTitle: 'Drawers',
     status: 'production',
     purpose:
-      'Right-anchored editorial drawers for the Recruiter Shortlist (with shareable URL builder) and Craft Colophon without losing the visitor’s reading scroll position.',
+      'Right-anchored editorial drawer for the Craft Colophon specification without losing the visitor’s reading scroll position.',
     anatomy: [
       'Full-screen dimmed backdrop (bg-[#1D1D1F]/45 backdrop-blur-[3px])',
       'Elevated .apple-modal sheet sliding from right (max-w-[440px] or [520px])',
@@ -1554,7 +1556,6 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
       'Scrollable content body + quiet secondary-surface footer actions',
     ],
     variants: [
-      { name: 'ShortlistDrawer', usage: 'Saved case study list, empty state, copyable shareable URL, Clear all + Copy link footer.' },
       { name: 'ColophonDrawer', usage: '5-chapter editorial craft specification documenting production tokens and architecture.' },
     ],
     interactionStates: [
@@ -1566,7 +1567,7 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
     animation:
       'Backdrop 200–220ms fade; panel x: 100%→0 slide over 280–300ms --ease-apple; reduced-motion snaps opacity cleanly.',
     responsiveBehavior:
-      'ShortlistDrawer adapts to a rounded-t-[26px] bottom-aligned sheet (max-h-[88vh]) on <640px mobile and a 440px right rail on desktop; ColophonDrawer spans full width on mobile up to 520px.',
+      'ColophonDrawer spans full width on mobile up to a 520px right rail on desktop.',
     accessibility: [
       'Sets role="dialog", aria-modal="true", aria-labelledby, and data-modal-open="true".',
       'Uses useDialogFocusTrap for Tab wrapping, Escape dismissal, and focus restoration.',
@@ -1581,13 +1582,13 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
       '--shadow-apple-modal',
     ],
     implementation: {
-      sourcePath: 'src/components/ShortlistDrawer.tsx',
-      exportName: 'ShortlistDrawer / ColophonDrawer',
+      sourcePath: 'src/components/ColophonDrawer.tsx',
+      exportName: 'ColophonDrawer',
       cssClasses: ['.apple-modal', '.apple-btn-icon', '.apple-surface-subtle'],
-      snippet: `<ShortlistDrawer open={open} onClose={onClose} onNavigate={onNavigate} />\n<ColophonDrawer open={open} onClose={onClose} />`,
+      snippet: `<ColophonDrawer open={open} onClose={onClose} />`,
     },
     usageGuidance: [
-      'Use slide-over drawers for secondary reference or collection tools (Shortlist, Colophon) that complement the current page.',
+      'Use slide-over drawers for secondary reference tools (Colophon) that complement the current page.',
       'Keep drawer footers limited to 1 primary action and 1 quiet utility action.',
     ],
     doDonts: [
@@ -1668,7 +1669,7 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
       'Inset-grouped expandable rows used for Selected Experiments & Craft Studies on HomePage, animating smoothly via CSS grid-template-rows without layout jitter.',
     anatomy: [
       'Inset rounded-[28px] --apple-bg-secondary container with hairline dividers',
-      'Full-width <button> header with metadata row, title, summary, and circular SFChevronDown indicator',
+      'Full-width <button> header with metadata row, title, summary, and circular Lucide ChevronDown indicator',
       'Collapsible region (grid-rows-[0fr] → grid-rows-[1fr]) holding extended technical notes and stack attribution',
     ],
     variants: [
@@ -1725,13 +1726,13 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
       'Compact mobile-only (<768px) frosted reading bar on Case Studies that pairs active chapter progress, quick AudioPlayer jump, and an expandable bottom-sheet chapter picker.',
     anatomy: [
       'Fixed bottom frosted .apple-ios-bar pill (h-[52px])',
-      'Chapter button with SFListBullet, active chapter title, and live hairline progress bar + percentage',
+      'Chapter button with Lucide List, active chapter title, and live hairline progress bar + percentage',
       'Right-side Listen / Listening button toggling accent fill during active narration',
       'Expandable bottom-aligned .apple-modal sheet (rounded-[24px]) with 44px chapter rows',
     ],
     variants: [
       { name: 'Idle Reading Bar', usage: 'Neutral tonal "Listen" pill + live chapter progress readout.' },
-      { name: 'Active Narration Bar', usage: 'Filled --apple-blue-fill "Listening" pill + SFWaveform icon.' },
+      { name: 'Active Narration Bar', usage: 'Filled --apple-blue-fill "Listening" pill + Lucide AudioLines icon.' },
       { name: 'Expanded Chapter Sheet', usage: 'Bottom-anchored modal listing all chapters with active highlight.' },
     ],
     interactionStates: [
@@ -1787,15 +1788,15 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
     shortTitle: 'Toast Viewport',
     status: 'production',
     purpose:
-      'Single non-stacking frosted pill confirmation bar confirming brief transient actions (Copied email, Shortlist updated, Reader comfort changed, Token copied) without interrupting flow.',
+      'Single non-stacking frosted pill confirmation bar confirming brief transient actions (Copied email, Reader comfort changed, Token copied) without interrupting flow.',
     anatomy: [
       'Bottom-centered aria-live="polite" viewport',
       'Frosted .apple-ios-bar pill (rounded-full, max-w-[420px])',
-      'Tone icon (SFCheckmarkCircleFill for success, subtle Apple Blue dot for info)',
-      'Single-line truncated message + compact dismiss SFXmark button',
+      'Tone icon (AnimatedCheckIcon for success, subtle Editorial Cobalt dot for info)',
+      'Single-line truncated message + compact dismiss Lucide X button',
     ],
     variants: [
-      { name: 'Success Toast (tone="success")', usage: 'Clipboard copy, shortlist added, inquiry prepared, decision saved.' },
+      { name: 'Success Toast (tone="success")', usage: 'Clipboard copy, inquiry prepared, decision saved.' },
       { name: 'Informational Toast (tone="info")', usage: 'Appearance change, UI sound muted/unmuted, reading depth switched.' },
     ],
     interactionStates: [
@@ -1847,7 +1848,7 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
     purpose:
       'WCAG 2.2 AA calibrated status indicators and inline editorial notices powered by the Stage 2.5 semantic tokens (--apple-success, --apple-warning, --apple-info, --apple-error).',
     anatomy: [
-      'Inline status row: subtle 6px indicator or 14px SF Symbol + semibold semantic ink label (zero pill clutter)',
+      'Inline status row: subtle 6px indicator or 14px Lucide icon + semibold semantic ink label (zero pill clutter)',
       'Alert banner: bordered tinted surface (10–12% semantic tint) with icon, concise title, and actionable explanation',
       'Inline form error: role="alert" paragraph in --apple-error below invalid field',
     ],
@@ -1892,7 +1893,7 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
     ],
     doDonts: [
       {
-        doText: 'Pair semantic color with an explicit word ("Resolved", "Sync interrupted") and SF Symbol.',
+        doText: 'Pair semantic color with an explicit word ("Resolved", "Sync interrupted") and Lucide icon.',
         dontText: 'Use raw Tailwind green-500/amber-500 hex values that fail contrast in Cool/Warm Light or Dark modes.',
       },
     ],
@@ -1957,15 +1958,15 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
     shortTitle: 'Empty & Error States',
     status: 'production',
     purpose:
-      'Calm, actionable empty and error panels used across Selected Work search, ShortlistDrawer, and multi-state CaseStudyPrototypes so visitors always have a clear next step.',
+      'Calm, actionable empty and error panels used across Work archive search and multi-state CaseStudyPrototypes so visitors always have a clear next step.',
     anatomy: [
       'Centered .apple-surface-subtle container (rounded-[22px]) with optional error hairline border',
-      'Optional circular 40–44px icon badge (SFBookmark, SFCheckmark, or SFExclamationTriangle)',
+      'Optional circular 40–44px icon badge (Lucide List, Check, or AlertTriangle)',
       'Clear plain-language heading + 1–2 sentence explanation (max-w-[46ch])',
-      'Single primary recovery CTA (.apple-btn-primary with SFReset) + optional tonal secondary action',
+      'Single primary recovery CTA (.apple-btn-primary with Lucide RotateCcw) + optional tonal secondary action',
     ],
     variants: [
-      { name: 'Empty Collection / Zero Results', usage: 'ShortlistDrawer empty state, Selected Work search zero-matches, Prototype empty filter.' },
+      { name: 'Empty Collection / Zero Results', usage: 'Work archive search zero-matches, Prototype empty filter.' },
       { name: 'Error Recovery Panel', usage: 'Prototype sync interruption states with role="alert" and explicit retry button.' },
     ],
     interactionStates: [
@@ -1992,7 +1993,7 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
     ],
     implementation: {
       sourcePath: 'src/components/CaseStudyPrototypes.tsx',
-      exportName: 'Prototype Empty & Error States / ShortlistDrawer Empty State',
+      exportName: 'Prototype Empty & Error States / WorkPage Empty State',
       cssClasses: ['.apple-surface-subtle', '.apple-btn-primary', '.apple-btn-tonal'],
       snippet: `<div role="alert" className="apple-surface-subtle rounded-[22px] border border-[var(--apple-error)]/25 px-6 py-10 text-center">...</div>`,
     },
@@ -2026,7 +2027,8 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
       'Expandable Voice Settings drawer: voice selector, playback speed (0.85×–2×), pitch presets, and volume slider',
     ],
     variants: [
-      { name: 'Inline Case Study Player', usage: 'Anchored beneath Case Study hero with full waveform and voice tuning.' },
+      { name: 'v1 · Editorial Case Study Player (editorial)', usage: 'Anchored beneath Case Study hero with full waveform and voice tuning.' },
+      { name: 'v2 · Contextual Floating Pill (contextual-floating)', usage: 'Minimal persistent pill player with centered Play/Pause, ±15s Lucide skip controls, segmented chapter track, speed pill, and context-aware glowing Jump to Speaker icon.' },
       { name: 'Floating Now Playing Dock', usage: 'Automatically pins at viewport bottom when scrolling away during playback.' },
       { name: 'Standalone Waveform & Equalizer', usage: 'Reusable AudioWaveform and MiniAudioEqualizer visualizers.' },
     ],
@@ -2070,6 +2072,299 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
       {
         doText: 'Animate waveform energy gently around the active playhead and settle calmly on pause.',
         dontText: 'Auto-play narration on page load or keep requestAnimationFrame running after unmount.',
+      },
+    ],
+    supportsViewportPreview: true,
+  },
+  {
+    id: 'cassette-player',
+    categoryId: 'media-interactive',
+    name: 'CassettePlayer (v1 & v2 Deck)',
+    shortTitle: 'CassettePlayer',
+    status: 'production',
+    purpose:
+      'Tactile skeuomorphic 1.58-ratio cassette tape audio deck with dual-reel momentum physics, Base UI chapter scrubber, 8 material/color finishes, and a v2 Editorial Audio Deck aligned with our Case Study AudioPlayer (±15s skip, playback speed, chapter markers, and context-aware Jump to Speaker target).',
+    anatomy: [
+      '1.58 aspect-ratio molded cassette housing with metallic screw bosses, recessed guide slots, and subtle noise grain',
+      'Paper cassette label with track metadata, active chapter kicker + MiniAudioEqualizer (v2), speed/mute controls, and 3-band heritage stripe graphic',
+      'Recessed tape window housing left/right toothed reels whose wound tape radius and angular velocity track playback ratio in real time',
+      'Accessible Base UI Slider scrub track with v2 chapter notch indicators and precision drag thumb',
+      'Lower trapezoidal transport deck: 3 keys in v1 (Restart, Play/Pause, Mute) and 5 symmetrical keys in v2 (Restart, -15s, Play/Pause, +15s, Target / Jump to Speaker)',
+    ],
+    variants: [
+      {
+        name: 'v1 · Classic Hardware Deck',
+        usage:
+          'Purist 3-button cassette transport (Restart, Play/Pause, Mute) with side-A archive metadata for ambient audio notes and editorial listening.',
+      },
+      {
+        name: 'v2 · Editorial Audio Deck (±15s, Speed, Chapters & Target)',
+        usage:
+          'Case-study audio deck matching AudioPlayer ergonomics: 5-key trapezoid transport with SkipBack15Icon / SkipForward15Icon, interactive playback rate (1×–2×), chapter-synced scrubber notches, MiniAudioEqualizer, and context-aware HandTapIcon Jump-to-Speaker target.',
+      },
+      {
+        name: '8 Material & Color Editions',
+        usage:
+          'Archive Classic, Studio Crimson, Warm Paper, Braun Cream (light shell), Cobalt Slate, Walkman Hi-Fi, Kyoto Matcha, and Espresso Noir — plus themed, card, or transparent stage modes.',
+      },
+    ],
+    interactionStates: [
+      {
+        state: 'Default',
+        trigger: 'Idle / Paused',
+        treatment:
+          'Reels rest at current tape angle with static label metadata and crisp high-contrast transport icons.',
+      },
+      {
+        state: 'Selected',
+        trigger: 'Playing & Scrubbing',
+        treatment:
+          'Dual reels rotate continuously at playbackRate speed via requestAnimationFrame; wound tape transfers progressively from supply to take-up reel; MiniAudioEqualizer pulses in v2.',
+      },
+      {
+        state: 'Pressed / Active',
+        trigger: 'Out-of-Context Target (v2) / Rewind / ±15s Skip',
+        treatment:
+          'Target button illuminates with --apple-blue accent and glow ring when isOutOfContext is true; ±15s skip and restart trigger cubic-eased reel spin animation and tactile sound cues.',
+      },
+      {
+        state: 'Focus-visible',
+        trigger: 'Keyboard Tab & Deck Shortcuts',
+        treatment:
+          '2px focus ring on all transport buttons, speed/mute controls, and scrubber thumb; supports J/K (±15s), M (mute), and 0 (rewind) when focused.',
+      },
+    ],
+    behavior:
+      'Coordinates real HTML5 <audio> playback, cubic-eased reel animations on skip/rewind, independent mute & speed cycling (1×/1.25×/1.5×/2×), chapter change callbacks, and context-aware onJumpToSpeaker notifications with synthesized soundEngine ticks.',
+    animation:
+      '60fps compositor-driven SVG reel rotation synced to playbackRate, cubic-out reel interpolation on ±15s skips and rewind (210–1000ms), and instant reduced-motion fallback under prefers-reduced-motion.',
+    responsiveBehavior:
+      'Container-query scaled (cqw) hardware proportions maintain crisp typography, touch targets, and 5-key trapezoid spacing from 320px mobile viewports up to full editorial widths.',
+    accessibility: [
+      'Scrub track uses @base-ui/react/slider with keyboard arrow seeking, aria-label="Audio playback position", and dynamic tabular timecodes.',
+      'All transport controls expose explicit aria-labels ("Play audio", "Skip back 15 seconds", "Jump to active speaker section", "Playback speed 1.25x") and AppleTooltip hints.',
+      'Cleans up audio event listeners and requestAnimationFrame loops cleanly on unmount and respects prefers-reduced-motion.',
+    ],
+    tokensUsed: [
+      '--apple-blue',
+      '--apple-blue-fill',
+      '--apple-surface-elevated',
+      '--apple-bg-secondary',
+      '--apple-separator',
+      '--apple-separator-strong',
+      '--apple-label-primary',
+      '--apple-label-secondary',
+      '--shadow-apple-subtle',
+    ],
+    implementation: {
+      sourcePath: 'src/components/CassettePlayer.tsx',
+      exportName: 'CassettePlayer / CASSETTE_THEMES',
+      cssClasses: ['container-type: inline-size', 'tabular-nums'],
+      snippet: `<CassettePlayer variant="v2" audioSrc={trackUrl} trackTitle="StallSync Case Study" chapters={chapters} isOutOfContext={outOfContext} onJumpToSpeaker={handleJump} theme={CASSETTE_THEMES[2]} />`,
+    },
+    usageGuidance: [
+      'Use v2 when pairing audio with multi-chapter editorial narratives or case studies that benefit from ±15s scrubbing, speed control, and Jump-to-Speaker orientation.',
+      'Use v1 when a minimal, purist cassette listening card without chapter chrome best serves a short voice note or musical snippet.',
+    ],
+    doDonts: [
+      {
+        doText:
+          'Provide meaningful chapter ratios and wire onJumpToSpeaker so the Target key always navigates listeners back to active context.',
+        dontText:
+          'Auto-play audio on mount or rely on unverified external MP3 URLs that can fail CORS or 404.',
+      },
+    ],
+    supportsViewportPreview: true,
+  },
+  {
+    id: 'ipod-player',
+    categoryId: 'media-interactive',
+    name: 'IPodPlayer (v2 Classic WebGL & v1 2001)',
+    shortTitle: 'IPodPlayer',
+    status: 'production',
+    purpose:
+      'Dual-generation interactive iPod hardware specimen pairing v2 Classic (a continuous 38px-thick Three.js brushed-metal WebGL shell with Cover Flow, synced lyrics, live visualizer, Brick, Music Quiz, and visitor-saved tracks) with the v1 2001 monochrome LCD edition.',
+    anatomy: [
+      'v2 Continuous 38px-thick Three.js WebGL brushed-aluminum and mirror-stainless shell with procedural grain/roughness maps, RoomEnvironment studio reflections, and 1:1 perspective-matched DOM front plane',
+      'v2 Color TFT iPod Classic OS interface: split-screen Home menu, 3D reflective Cover Flow carousel, Now Playing (Album Art / Synced Lyrics / Canvas Visualizer cycled via Center button), playable Brick game, 5-round Music Quiz, and Add Song (+) persisted in localStorage',
+      'Rotational Click Wheel supporting circular pointer drag, MENU / Prev / Next / Play-Pause / Center Select buttons, scoped keyboard navigation, and configurable Hold-vs-Always mouse-wheel capture so page scroll is never hijacked',
+      'v1 2001 Original variant: glossy polycarbonate / U2 chassis with spring-tilted CSS 3D extrusion, backlit monochrome LCD, and instant offline synthesized stereo playback',
+    ],
+    variants: [
+      {
+        name: 'v2 · Classic WebGL — Brushed Silver (silver)',
+        usage:
+          'Signature anodized silver brushed aluminum WebGL chassis with mirror-polished steel back, crisp color TFT screen, Cover Flow, synced lyrics, and games.',
+      },
+      {
+        name: 'v2 · Classic WebGL — Graphite & Champagne (graphite / champagne)',
+        usage:
+          'Dark space-graphite and warm champagne anodized finishes sharing the same procedural grain, roughness map, and studio reflection recipe.',
+      },
+      {
+        name: 'v1 · 2001 Original (classic / black / u2)',
+        usage:
+          'First-generation monochrome LCD scroll-wheel specimen in Classic White, Matte Black, and U2 Crimson Wheel editions.',
+      },
+    ],
+    interactionStates: [
+      {
+        state: 'Default',
+        trigger: 'Resting tabletop angle',
+        treatment:
+          'Rests at a subtle sculptural tilt with soft studio reflections and split-screen Home preview ready for Click Wheel navigation.',
+      },
+      {
+        state: 'Hover',
+        trigger: 'Fine pointer moving across hardware stage',
+        treatment:
+          'Damped Three.js WebGL camera/mesh tilt (v2) or calibrated spring tilt (v1) tilts smoothly toward the cursor while brushed-metal specular highlights glide across the chamfered bezel.',
+      },
+      {
+        state: 'Pressed / Active',
+        trigger: 'Click Wheel rotation, menu selection, or transport press',
+        treatment:
+          'Steadies 3D tilt during circular wheel drag, triggers tactile soundEngine ticks, highlights active rows in classic blue gradient (v2) or monochrome ink (v1), and scrubs audio or steers the Brick paddle.',
+      },
+      {
+        state: 'Focus-visible',
+        trigger: 'Keyboard Tab onto player region',
+        treatment:
+          '2px --apple-blue focus ring around the player stage; supports scoped ArrowUp/Down/Left/Right, Enter, Space, and Escape controls without leaking globally.',
+      },
+    ],
+    behavior:
+      'v2 runs a full nested Classic OS (Music → Cover Flow / All Songs / Artists / Albums / Add Song, Games → Brick / Music Quiz, Settings → Finish / Wheel Capture / Shuffle / Repeat / Brightness, and Now Playing with Center-button view cycling). Visitor-added tracks accept optional YouTube URLs/IDs and persist in localStorage; Hold-mode wheel capture only intercepts mouse wheel while the visitor holds the device.',
+    animation:
+      'v2 uses an on-demand damped Three.js WebGL render loop synced 1:1 with perspective(1100px) DOM transforms and software-WebGL fenceSync throttling; v1 uses compositor-driven motion/react springs. Both honor prefers-reduced-motion.',
+    responsiveBehavior:
+      'Centers cleanly inside fluid showcase and library stages with full pointer, touch-tap, and scoped keyboard navigation.',
+    accessibility: [
+      'Exposes role="region" with descriptive aria-label and scoped keyboard handlers (arrows, Enter, Space, Escape) that pause while typing in the Add Song form.',
+      'All Click Wheel zones, menu rows, and Cover Flow sleeves are keyboard-accessible semantic buttons with explicit aria-labels and reduced-motion tilt safeguards.',
+    ],
+    tokensUsed: [
+      '--apple-blue',
+      '--apple-surface-elevated',
+      '--apple-bg-secondary',
+      '--apple-separator',
+      '--apple-separator-strong',
+      '--apple-label-primary',
+      '--apple-label-secondary',
+      '--shadow-apple-subtle',
+    ],
+    implementation: {
+      sourcePath: 'src/components/ipod/IPodClassicV2.tsx',
+      exportName: 'IPodClassicV2',
+      cssClasses: ['tabular-nums'],
+      snippet: `<IPodClassicV2 finish="silver" wheelCaptureMode="hold" enable3dTilt ownerName="Rohit" />`,
+    },
+    usageGuidance: [
+      'Use v2 (IPodClassicV2) when showcasing rich interactive playlists with Cover Flow, synced lyrics, mini-games, and visitor-curated songs in a studio WebGL shell.',
+      'Keep wheelCaptureMode="hold" on scrollable editorial pages so mouse-wheel scrolling never traps the visitor.',
+    ],
+    doDonts: [
+      {
+        doText:
+          'Pass hand-picked tracks via the tracks prop with optional youtubeId and lyricsTitle/lyricsArtist metadata, and keep mouse-wheel capture set to "hold" inside scrollable documents.',
+        dontText:
+          'Apply backdrop-filter over the WebGL canvas or attach global wheel/keydown listeners that hijack page scrolling.',
+      },
+    ],
+    supportsViewportPreview: true,
+  },
+  {
+    id: 'interactive-book',
+    categoryId: 'media-interactive',
+    name: 'Interactive 3D Book (Field Journal)',
+    shortTitle: '3D Field Journal',
+    status: 'production',
+    purpose:
+      'Real-time WebGL2 3D interactive notebook with physical spine curl, shadow-casting stacked pages, hover tilt, clickable page hotspots, and a full bookbinding customizer (Deep Brown, Fawn, Saddle Tan, cloth/suede textures, foil stamping, paper stocks, and sticker styling).',
+    anatomy: [
+      'Procedural Three.js WebGL2 book mesh with 64×32 spine-weighted sheet subdivisions for realistic paper bending and corner curl',
+      'Customizable bookbinding cover supporting curated shades (Deep Rich Brown, Fawn, Saddle Tan, Charcoal, Oxblood, Forest, Navy, Raw Linen, plus Custom Hex), tactile textures (Leatherette, Suede, Woven Linen, Smooth), foil ink, and debossed frames',
+      'Optional peel-and-stick cover name sticker with customizable badge ink, tilt angle, and pure embossed-cover toggle',
+      'Customizable interior paper stock (Warm Cream, Aged Vellum, Crisp Ivory) and ruling (Dot Grid, Ruled Lines, Blank) with clickable normalized hotspots and responsive single-page mobile mode',
+    ],
+    variants: [
+      {
+        name: 'Deep Brown & Fawn Leather / Suede Editions',
+        usage:
+          'Rich roasted espresso mahogany and soft buckskin fawn finishes paired with suede grain and warm gold or blind-debossed stamping.',
+      },
+      {
+        name: 'Pure Embossed vs. Name-Sticker Cover',
+        usage:
+          'Toggle between a playful tilted name sticker or minimalist serif cover stamping with optional debossed rule or archival corner frames.',
+      },
+      {
+        name: 'Custom Interior Paper & Ruling',
+        usage:
+          'Switch between Warm Cream, Aged Vellum, or Crisp Ivory paper with Dot Grid, Ruled, or Blank sheets and copy the resulting JSON directly for homepage deployment.',
+      },
+    ],
+    interactionStates: [
+      {
+        state: 'Default',
+        trigger: 'Resting closed notebook',
+        treatment:
+          'Rests at a subtle 3° editorial angle with soft WebGL drop shadow and tactile cover texture.',
+      },
+      {
+        state: 'Hover',
+        trigger: 'Fine pointer hovering over cover',
+        treatment:
+          'Smoothly tilts toward the pointer while specular sunlight catches the cover grain and sticker sheen.',
+      },
+      {
+        state: 'Pressed / Active',
+        trigger: 'Click to open spread & drag page corners',
+        treatment:
+          'Opens smoothly into a full-viewport 3D two-page spread (or single-page mobile flipbook) with spring-physics page curl, Aqua navigation controls, and clickable page hotspots.',
+      },
+      {
+        state: 'Focus-visible',
+        trigger: 'Keyboard Tab & Spread Navigation',
+        treatment:
+          'Keyboard-accessible open trigger (Enter/Space) plus ArrowLeft, ArrowRight, and Escape navigation while reading.',
+      },
+    ],
+    behavior:
+      'Rebuilds procedural high-DPI cover and interior page textures cleanly from BookCustomizationConfig and disposes/rebinds WebGL resources on change; supports one-click Copy Config JSON for transferring settings to Home and About.',
+    animation:
+      '60fps WebGL2 spring-physics curl, hover corner peek, peel-and-stick cover sticker entrance, and graceful static cover fallback when WebGL2 is unavailable or reduced motion is enabled.',
+    responsiveBehavior:
+      'Automatically switches from two-page desktop spread (>640px) to single-page mobile flipbook (≤640px) while keeping all customization options intact.',
+    accessibility: [
+      'Provides keyboard-focusable trigger button, Escape dismissal, ArrowLeft/ArrowRight page turning, and ARIA dialog semantics while open.',
+      'Pauses smooth scrolling cleanly while the reading modal is active and restores exact scroll offset on close.',
+    ],
+    tokensUsed: [
+      '--apple-blue',
+      '--apple-blue-fill',
+      '--apple-surface-elevated',
+      '--apple-bg-secondary',
+      '--apple-separator',
+      '--apple-label-primary',
+      '--apple-label-secondary',
+      '--apple-focus-ring',
+    ],
+    implementation: {
+      sourcePath: 'src/components/AboutJournalBook.tsx',
+      exportName: 'AboutJournalBook / BookCustomizationConfig',
+      cssClasses: ['aqua', 'aqua-round'],
+      snippet: `<AboutJournalBook customization={{ coverColor: 'espresso-brown', coverTexture: 'suede', foilStyle: 'gold', paperTone: 'warm-cream', pageRuling: 'dot-grid' }} />`,
+    },
+    usageGuidance: [
+      'Use the Component Library studio controls to explore cover finishes (such as Deep Brown or Fawn), textures, foil inks, and paper rulings, then click Copy Config to apply those exact settings to the Homepage.',
+    ],
+    doDonts: [
+      {
+        doText:
+          'Pair light covers like Fawn or Raw Linen with Auto or Blind Deboss stamping so typography remains legible.',
+        dontText:
+          'Mount multiple simultaneous WebGL book canvases inside tight scrolling lists without clean disposal.',
       },
     ],
     supportsViewportPreview: true,
@@ -2266,7 +2561,7 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
     purpose:
       'Live Hyderabad local clock (Asia/Kolkata, IST · UTC+5:30) helping international collaborators gauge timezone overlap on About and Contact pages.',
     anatomy: [
-      'SFClock icon tinted --apple-link',
+      'Lucide Clock icon tinted --apple-link',
       'Location / date / timezone label (IST · UTC+5:30)',
       '1-second updating time readout formatted with tabular-nums + part-of-day label',
     ],
@@ -2318,9 +2613,9 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
     shortTitle: 'Reading Depth & Gallery',
     status: 'production',
     purpose:
-      'Case Study reading utility bar combining 2-Min Skim / Full Story toggle, Recruiter Shortlist bookmark button, and ReaderComfortPopover alongside zoomable gallery figure triggers.',
+      'Case Study reading utility bar combining 2-Min Skim / Full Story toggle and ReaderComfortPopover alongside zoomable gallery figure triggers.',
     anatomy: [
-      'Header utility cluster: compact .apple-segmented (2-Min Skim | Full Story), Shortlist toggle pill, and ReaderComfortPopover',
+      'Header utility cluster: compact .apple-segmented (2-Min Skim | Full Story) and ReaderComfortPopover',
       'Gallery figure: rounded-[24px] clickable image button with subtle zoom affordance and editorial <figcaption>',
     ],
     variants: [
@@ -2331,7 +2626,7 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
     interactionStates: [
       { state: 'Default', trigger: 'Resting figure / controls', treatment: 'Clean surface framing with crisp caption beneath.' },
       { state: 'Hover', trigger: 'Pointer hover on gallery image', treatment: 'Subtle 1.015 zoom and inspect cue.' },
-      { state: 'Selected', trigger: 'Active depth / Shortlisted state', treatment: 'Elevated segmented thumb or solid blue Shortlisted toggle.' },
+      { state: 'Selected', trigger: 'Active depth mode', treatment: 'Elevated segmented thumb on active reading depth.' },
       { state: 'Focus-visible', trigger: 'Keyboard Tab', treatment: '2px --apple-blue focus outline.' },
     ],
     behavior:
@@ -2342,7 +2637,7 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
       'Utility controls wrap gracefully below Breadcrumbs on mobile while maintaining 40–44px touch targets.',
     accessibility: [
       'Gallery image triggers are native <button> elements with explicit "Inspect [image] full screen" aria-labels.',
-      'Shortlist toggle exposes aria-pressed.',
+      'Reading depth toggles expose aria-pressed.',
     ],
     tokensUsed: [
       '--apple-control-tonal',
@@ -2355,11 +2650,11 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
       sourcePath: 'src/pages/CaseStudyPage.tsx',
       exportName: 'Reading Depth Bar & Lightbox Gallery Figure',
       cssClasses: ['.apple-segmented', '.apple-surface-subtle', '.apple-card-static'],
-      snippet: `{/* 2-Min Skim / Full Story + Shortlist + ReaderComfortPopover */}`,
+      snippet: `{/* 2-Min Skim / Full Story + ReaderComfortPopover */}`,
     },
     usageGuidance: [
       'Pair 2-Min Skim and Full Story cleanly with AudioPlayer so narration length automatically adapts to active reading depth.',
-      'Keep Shortlist bookmarking and Reader Comfort accessible in the same header row without adding extra floating chrome.',
+      'Keep Reader Comfort accessible in the same header row without adding extra floating chrome.',
     ],
     doDonts: [
       {
@@ -2504,7 +2799,7 @@ export const COMPONENT_LIBRARY_ITEMS: readonly ComponentLibraryItem[] = [
     anatomy: [
       'Hairline top-bordered year group anchor (.type-title-3 tabular-nums in --apple-link)',
       'Ordered <ol> with hairline row dividers (divide-y divide-[var(--apple-separator-subtle)])',
-      'Linked project title + SFChevronRight, role · category subtitle, short summary, and right-aligned duration',
+      'Linked project title + Lucide ChevronRight, role · category subtitle, short summary, and right-aligned duration',
     ],
     variants: [
       { name: 'Year-Grouped Chronology', usage: 'AboutPage Practice Timeline (reverse chronological from PROJECTS).' },

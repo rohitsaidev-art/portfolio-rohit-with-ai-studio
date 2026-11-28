@@ -15,11 +15,16 @@ import { ProjectCard } from '../ProjectCard';
 import { AudioPlayer } from '../AudioPlayer';
 import { CaseStudyPrototype } from '../CaseStudyPrototypes';
 import {
-  SFCheckmark,
-  SFDisplay,
-  SFReset,
-  SFiPhone,
-} from '../SFSymbols';
+  generateEffectTrackCss,
+  MATERIAL_SYSTEM_MATRIX,
+} from '../../utils/behaviourCatalog';
+import {
+  Check,
+  Monitor,
+  RotateCcw,
+  Smartphone,
+} from 'lucide-react';
+import { CopyTokenButton } from './FoundationDocPrimitives';
 
 interface EffectsLabSectionProps {
   sandboxPalette: VisualPaletteId;
@@ -49,19 +54,16 @@ const SAMPLE_AUDIO_SEGMENTS = [
     id: 'fx-seg-1',
     num: '01',
     title: 'Surface Calibration',
-    text: 'Experimental visual effects remain strictly isolated inside the private Design Workshop preview stage.',
+    text: 'Experimental visual effects remain isolated inside the Portfolio Studio preview stage.',
   },
   {
     id: 'fx-seg-2',
     num: '02',
     title: 'Approval Workflow',
-    text: 'Approved treatments are captured in the Decision Log for intentional promotion into shared CSS tokens.',
+    text: 'Approved treatments are captured in the Decision Log before intentional promotion into shared CSS.',
   },
 ];
 
-/**
- * Generates SVG procedural noise data URI locally (zero external asset requests).
- */
 function buildGrainDataUri(variantId: string): string {
   const baseFreq =
     variantId === 'ceramic-matte'
@@ -74,10 +76,6 @@ function buildGrainDataUri(variantId: string): string {
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 }
 
-/**
- * Computes strictly local inline CSS for the experimental stage ONLY.
- * Never mutates global CSS variables, :root, or public pages.
- */
 function computeExperimentalVisuals(
   track: EffectTrackDefinition,
   config: EffectTrackConfig,
@@ -221,7 +219,7 @@ function computeExperimentalVisuals(
           blurBarStyle: null,
         };
       }
-      const normalized = (config.secondary - 50) / 50; // -1..1
+      const normalized = (config.secondary - 50) / 50;
       const multiplier =
         config.variantId === 'ambient-plate'
           ? 0.6
@@ -331,6 +329,7 @@ export function EffectsLabSection({
   const [compareMode, setCompareMode] = useState<'side-by-side' | 'focused'>('side-by-side');
   const [viewportMode, setViewportMode] = useState<'desktop' | 'mobile'>('desktop');
   const [previewComponent, setPreviewComponent] = useState<PreviewComponentKind>('card');
+  const [materialFilter, setMaterialFilter] = useState<'all' | 'production' | 'experimental'>('all');
   const [rationale, setRationale] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
 
@@ -353,6 +352,16 @@ export function EffectsLabSection({
       ),
     [activeTrack, config, sandboxTheme, sandboxPalette, reducedMotion],
   );
+
+  const generatedCss = useMemo(
+    () => generateEffectTrackCss(activeTrack, config, sandboxTheme, sandboxPalette),
+    [activeTrack, config, sandboxTheme, sandboxPalette],
+  );
+
+  const visibleMaterials =
+    materialFilter === 'all'
+      ? MATERIAL_SYSTEM_MATRIX
+      : MATERIAL_SYSTEM_MATRIX.filter((m) => m.status === materialFilter);
 
   const handleVariantSelect = (variantId: string) => {
     const chosen = activeTrack.variants.find((v) => v.id === variantId);
@@ -386,7 +395,7 @@ export function EffectsLabSection({
         `${activeVariant.label} evaluated against ${activeTrack.baselineLabel} (${activeTrack.primarySliderLabel}: ${config.intensity}${activeTrack.primaryUnit}).`,
     });
     setFeedback(
-      `Saved "${activeVariant.label}" as ${status === 'promoted' ? 'Promoted to Production' : status} in Decision Log. Public portfolio CSS remains unchanged.`,
+      `Saved "${activeVariant.label}" as ${status === 'promoted' ? 'Promoted' : status} in Decision Log.`,
     );
     window.setTimeout(() => setFeedback(null), 3500);
   };
@@ -401,40 +410,35 @@ export function EffectsLabSection({
         data-ds-palette={sandboxPalette}
         data-ds-theme={sandboxTheme}
         style={isExperimental ? experimental.stageStyle : undefined}
-        className="relative overflow-hidden rounded-[24px] border border-[var(--apple-separator)] bg-[var(--apple-bg-secondary)] p-5 sm:p-6"
+        className="relative overflow-hidden rounded-[20px] border border-[var(--apple-separator)] bg-[var(--apple-bg-secondary)] p-5"
       >
-        {/* Experimental overlay layer (grain / perimeter wash) */}
         {isExperimental && experimental.overlayStyle && (
           <div
             aria-hidden="true"
             style={experimental.overlayStyle}
-            className="pointer-events-none absolute inset-0 z-10 rounded-[24px]"
+            className="pointer-events-none absolute inset-0 z-10 rounded-[20px]"
           />
         )}
 
-        {/* Stage Label */}
-        <div className="relative z-20 mb-4 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2 text-[12px]">
-            <span
-              className={`font-semibold ${
-                isExperimental
-                  ? 'text-[var(--apple-link)]'
-                  : 'text-[var(--apple-label-primary)]'
-              }`}
-            >
-              {isExperimental ? `NOT LIVE · ${activeVariant.label}` : `Production Baseline · ${activeTrack.baselineLabel}`}
-            </span>
-          </div>
-          <span className="type-caption font-normal tabular-nums text-[var(--apple-label-tertiary)]">
+        <div className="relative z-20 mb-4 flex items-center justify-between gap-2 text-[12px]">
+          <span
+            className={`font-semibold ${
+              isExperimental
+                ? 'text-[var(--apple-link)]'
+                : 'text-[var(--apple-label-primary)]'
+            }`}
+          >
+            {isExperimental ? `Sandbox · ${activeVariant.label}` : 'Baseline'}
+          </span>
+          <span className="font-mono text-[11px] tabular-nums text-[var(--apple-label-tertiary)]">
             {isExperimental
               ? config.enabled
                 ? `${config.intensity}${activeTrack.primaryUnit} · ${config.secondary}${activeTrack.secondaryUnit}`
-                : 'Disabled (matches baseline)'
-              : 'Live Portfolio'}
+                : 'Off'
+              : 'Live'}
           </span>
         </div>
 
-        {/* Optional Backdrop Blur floating bar overlay when Track 4 is active */}
         {activeTrack.id === 'backdrop-blur' && (
           <div className="relative z-20 mb-4">
             <div
@@ -443,25 +447,24 @@ export function EffectsLabSection({
                   ? experimental.blurBarStyle
                   : undefined
               }
-              className={`flex items-center justify-between rounded-[18px] border border-[var(--apple-separator)] px-4 py-3 ${
+              className={`flex items-center justify-between rounded-[14px] border border-[var(--apple-separator)] px-3.5 py-2.5 ${
                 !isExperimental || !config.enabled
                   ? 'bg-[var(--apple-surface-elevated)] shadow-[var(--shadow-apple-subtle)]'
                   : 'shadow-[var(--shadow-apple-ios-bar)]'
               }`}
             >
-              <span className="type-footnote font-semibold text-[var(--apple-label-primary)]">
-                Sticky Control Material Preview
+              <span className="text-[12.5px] font-medium text-[var(--apple-label-primary)]">
+                Sticky Bar Material
               </span>
-              <span className="type-caption tabular-nums text-[var(--apple-label-secondary)]">
+              <span className="font-mono text-[11px] tabular-nums text-[var(--apple-label-secondary)]">
                 {isExperimental && config.enabled
-                  ? `blur(${config.intensity}px) · ${config.secondary}%`
-                  : 'Opaque baseline'}
+                  ? `${config.intensity}px · ${config.secondary}%`
+                  : 'Opaque'}
               </span>
             </div>
           </div>
         )}
 
-        {/* Viewport Container (Desktop vs Mobile 375px) */}
         <div
           className="relative z-20 mx-auto w-full transition-[max-width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
           style={{
@@ -471,7 +474,7 @@ export function EffectsLabSection({
           {previewComponent === 'card' && (
             <div
               style={frameStyle}
-              className="overflow-hidden rounded-[24px] bg-[var(--apple-surface-elevated)]"
+              className="overflow-hidden rounded-[22px] bg-[var(--apple-surface-elevated)]"
             >
               <div className="overflow-hidden">
                 <div
@@ -499,7 +502,7 @@ export function EffectsLabSection({
           {previewComponent === 'audio' && (
             <div
               style={frameStyle}
-              className="rounded-[24px] bg-[var(--apple-surface-elevated)] p-2"
+              className="rounded-[22px] bg-[var(--apple-surface-elevated)] p-2"
             >
               <AudioPlayer
                 title="Surface Study Narration"
@@ -511,7 +514,7 @@ export function EffectsLabSection({
           {previewComponent === 'prototype' && (
             <div
               style={frameStyle}
-              className="overflow-hidden rounded-[28px]"
+              className="overflow-hidden rounded-[24px]"
             >
               <CaseStudyPrototype kind="mycroharvest" />
             </div>
@@ -520,10 +523,10 @@ export function EffectsLabSection({
           {previewComponent === 'editorial' && (
             <div
               style={frameStyle}
-              className="rounded-[24px] bg-[var(--apple-surface-elevated)] p-6 sm:p-7"
+              className="rounded-[20px] bg-[var(--apple-surface-elevated)] p-6"
             >
-              <p className="type-caption text-[var(--apple-link)]">
-                02 · Editorial Surface Specimen
+              <p className="text-[11.5px] font-medium text-[var(--apple-link)]">
+                Editorial Surface
               </p>
               <h4
                 style={
@@ -534,25 +537,25 @@ export function EffectsLabSection({
                       }
                     : undefined
                 }
-                className="type-title-3 mt-2 text-[var(--apple-label-primary)]"
+                className="type-title-3 mt-1.5 text-[var(--apple-label-primary)]"
               >
                 Restraint makes visual nuance legible.
               </h4>
-              <p className="type-callout mt-2.5 text-[var(--apple-label-secondary)]">
-                Evaluate whether this surface treatment adds quiet physical poise without distracting from case study prose or photography.
+              <p className="mt-2 text-[14px] leading-[1.6] text-[var(--apple-label-secondary)]">
+                Check whether this treatment adds quiet physical depth without competing with prose or photography.
               </p>
-              <div className="mt-5 flex items-center gap-2.5 border-t border-[var(--apple-separator-subtle)] pt-4">
+              <div className="mt-4 flex items-center gap-2 border-t border-[var(--apple-separator-subtle)] pt-4">
                 <button
                   type="button"
                   onClick={() => playTick()}
-                  className="apple-btn-primary !min-h-[34px] !px-4 !py-1 !text-[13px]"
+                  className="apple-btn-primary !min-h-[34px] !px-4 !py-1 !text-[12.5px]"
                 >
                   Inspect Case Study
                 </button>
                 <button
                   type="button"
                   onClick={() => playTick()}
-                  className="apple-btn-tonal !min-h-[34px] !px-3.5 !py-1 !text-[13px]"
+                  className="apple-btn-tonal !min-h-[34px] !px-3.5 !py-1 !text-[12.5px]"
                 >
                   Copy Link
                 </button>
@@ -566,27 +569,43 @@ export function EffectsLabSection({
 
   return (
     <div className="space-y-10">
-      {/* Header */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="type-caption text-[var(--apple-link)]">
-            P1.3 · Isolated Surface &amp; Effects Exploration Lab
-          </p>
-          <h2 className="type-title-2 mt-1.5">
-            Explore, compare, and calibrate visual treatments safely.
-          </h2>
-          <p className="type-callout measure-prose mt-2">
-            Every slider and experimental preview below is strictly sandboxed inside <code className="font-mono text-[13px]">/design-system</code>. Nothing here modifies the live public portfolio.
-          </p>
+      {/* Top Track Selector + View Controls */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div
+          role="tablist"
+          aria-label="Seven surface and effects exploration tracks"
+          className="flex flex-wrap gap-1.5"
+        >
+          {EFFECT_TRACKS.map((track) => {
+            const active = track.id === activeTrack.id;
+            return (
+              <button
+                key={track.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => {
+                  playTick();
+                  onSelectTrackId(track.id);
+                }}
+                className={`min-h-[34px] whitespace-nowrap rounded-full border px-3.5 py-1 text-[12.5px] font-medium transition-colors ${
+                  active
+                    ? 'border-[var(--apple-label-primary)] bg-[var(--apple-label-primary)] text-[var(--apple-bg)]'
+                    : 'border-[var(--apple-separator)] bg-[var(--apple-surface-elevated)] text-[var(--apple-label-secondary)] hover:text-[var(--apple-label-primary)]'
+                }`}
+              >
+                {track.shortTitle}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Comparison & Viewport Controls */}
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="apple-segmented" role="group" aria-label="Comparison layout">
             {(
               [
-                { id: 'side-by-side', label: 'Side-by-Side' },
-                { id: 'focused', label: 'Experimental Only' },
+                { id: 'side-by-side', label: 'Compare' },
+                { id: 'focused', label: 'Solo' },
               ] as const
             ).map((mode) => {
               const active = compareMode === mode.id;
@@ -599,7 +618,7 @@ export function EffectsLabSection({
                     playTick();
                     setCompareMode(mode.id);
                   }}
-                  className={`apple-segmented-item !min-h-[32px] px-3.5 text-[12.5px] ${
+                  className={`apple-segmented-item !min-h-[30px] px-3 text-[12px] ${
                     active
                       ? 'apple-pill-shadow bg-[var(--apple-control-thumb)] text-[var(--apple-label-primary)]'
                       : 'text-[var(--apple-label-secondary)]'
@@ -614,8 +633,8 @@ export function EffectsLabSection({
           <div className="apple-segmented" role="group" aria-label="Preview viewport size">
             {(
               [
-                { id: 'desktop', label: 'Desktop', icon: SFDisplay },
-                { id: 'mobile', label: 'Mobile', icon: SFiPhone },
+                { id: 'desktop', label: 'Desktop', icon: Monitor },
+                { id: 'mobile', label: 'Mobile', icon: Smartphone },
               ] as const
             ).map((vp) => {
               const active = viewportMode === vp.id;
@@ -629,13 +648,13 @@ export function EffectsLabSection({
                     playTick();
                     setViewportMode(vp.id);
                   }}
-                  className={`apple-segmented-item !min-h-[32px] px-3 text-[12.5px] ${
+                  className={`apple-segmented-item !min-h-[30px] px-2.5 text-[12px] ${
                     active
                       ? 'apple-pill-shadow bg-[var(--apple-control-thumb)] text-[var(--apple-label-primary)]'
                       : 'text-[var(--apple-label-secondary)]'
                   }`}
                 >
-                  <Icon size={13} />
+                  <Icon size={12} strokeWidth={2} aria-hidden="true" />
                   <span>{vp.label}</span>
                 </button>
               );
@@ -644,104 +663,66 @@ export function EffectsLabSection({
         </div>
       </div>
 
-      {/* 7 Exploration Track Selector Rail */}
-      <div
-        role="tablist"
-        aria-label="Seven surface and effects exploration tracks"
-        className="flex flex-wrap gap-2"
-      >
-        {EFFECT_TRACKS.map((track) => {
-          const active = track.id === activeTrack.id;
-          return (
-            <button
-              key={track.id}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              onClick={() => {
-                playTick();
-                onSelectTrackId(track.id);
-              }}
-              className={`inline-flex min-h-[38px] items-center gap-2 rounded-full border px-4 py-1.5 text-[13px] font-medium transition-colors ${
-                active
-                  ? 'border-[var(--apple-blue-fill)] bg-[var(--apple-blue-fill)] text-white'
-                  : 'border-[var(--apple-separator)] bg-[var(--apple-surface-elevated)] text-[var(--apple-label-secondary)] hover:text-[var(--apple-label-primary)]'
-              }`}
-            >
-              <span className="tabular-nums opacity-75">{track.order}</span>
-              <span>{track.shortTitle}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Active Track Controls + Live Stage */}
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-        {/* Control Panel */}
-        <aside className="space-y-6 rounded-[24px] border border-[var(--apple-separator)] bg-[var(--apple-surface-elevated)] p-6 lg:col-span-4">
-          <div>
-            <div className="flex items-center justify-between gap-2">
-              <span className="type-caption text-[var(--apple-link)]">
-                Track {activeTrack.order} · NOT LIVE
-              </span>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  aria-pressed={config.enabled}
-                  onClick={() => {
-                    playTick();
-                    onUpdateTrackConfig(activeTrack.id, {
-                      ...config,
-                      enabled: !config.enabled,
-                    });
-                  }}
-                  className={
-                    config.enabled
-                      ? 'apple-btn-tonal !min-h-[28px] !px-2.5 !py-0.5 !text-[12px]'
-                      : 'apple-btn-outline !min-h-[28px] !px-2.5 !py-0.5 !text-[12px]'
-                  }
-                >
-                  {config.enabled ? 'Enabled' : 'Disabled'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    playTick();
-                    onResetTrackConfig(activeTrack.id);
-                  }}
-                  aria-label={`Reset ${activeTrack.title}`}
-                  title="Reset track to default parameters"
-                  className="apple-btn-icon h-7 w-7 bg-[var(--apple-bg-secondary)] text-[var(--apple-label-secondary)]"
-                >
-                  <SFReset size={13} />
-                </button>
-              </div>
+      {/* Main Split: Controls + Live Stage */}
+      <div className="grid grid-cols-1 gap-7 lg:grid-cols-12">
+        {/* Compact Control Panel */}
+        <aside className="space-y-5 rounded-[18px] border border-[var(--apple-separator)] bg-[var(--apple-surface-elevated)] p-5 lg:col-span-4">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <h2 className="text-[16px] font-semibold text-[var(--apple-label-primary)]">
+                {activeTrack.title}
+              </h2>
+              <p className="mt-1 text-[12.5px] text-[var(--apple-label-secondary)]">
+                {activeTrack.summary}
+              </p>
             </div>
-
-            <h3 className="type-title-3 mt-2 text-[var(--apple-label-primary)]">
-              {activeTrack.title}
-            </h3>
-            <p className="type-footnote mt-1.5 font-normal text-[var(--apple-label-secondary)]">
-              {activeTrack.summary}
-            </p>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <button
+                type="button"
+                aria-pressed={config.enabled}
+                onClick={() => {
+                  playTick();
+                  onUpdateTrackConfig(activeTrack.id, {
+                    ...config,
+                    enabled: !config.enabled,
+                  });
+                }}
+                className={
+                  config.enabled
+                    ? 'apple-btn-tonal !min-h-[28px] !px-2.5 !py-0.5 !text-[11.5px]'
+                    : 'apple-btn-outline !min-h-[28px] !px-2.5 !py-0.5 !text-[11.5px]'
+                }
+              >
+                {config.enabled ? 'On' : 'Off'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  playTick();
+                  onResetTrackConfig(activeTrack.id);
+                }}
+                aria-label={`Reset ${activeTrack.title}`}
+                title="Reset track"
+                className="apple-btn-icon h-7 w-7 bg-[var(--apple-bg-secondary)] text-[var(--apple-label-secondary)]"
+              >
+                <RotateCcw size={12} strokeWidth={2} aria-hidden="true" />
+              </button>
+            </div>
           </div>
 
           {activeTrack.respectsReducedMotion && reducedMotion && (
-            <div
+            <p
               role="note"
-              className="rounded-[14px] border border-[var(--apple-separator)] bg-[var(--apple-bg-secondary)] px-3.5 py-2.5 text-[12.5px] text-[var(--apple-label-secondary)]"
+              className="rounded-[12px] bg-[var(--apple-bg-secondary)] px-3 py-2 text-[12px] text-[var(--apple-label-secondary)]"
             >
-              <strong className="font-semibold text-[var(--apple-label-primary)]">
-                prefers-reduced-motion is active:
-              </strong>{' '}
-              Parallax displacement is automatically neutralized to 0px.
-            </div>
+              Reduced motion is active — parallax is locked to 0px.
+            </p>
           )}
 
-          {/* Tasteful Alternative Selector */}
-          <div className="space-y-2 border-t border-[var(--apple-separator-subtle)] pt-5">
-            <p className="type-caption text-[var(--apple-label-tertiary)]">
-              Candidate Treatments
+          {/* Variants */}
+          <div className="space-y-1.5 border-t border-[var(--apple-separator-subtle)] pt-4">
+            <p className="text-[11.5px] font-medium text-[var(--apple-label-tertiary)]">
+              Treatments
             </p>
             {activeTrack.variants.map((variant) => {
               const selected = variant.id === config.variantId;
@@ -751,32 +732,32 @@ export function EffectsLabSection({
                   type="button"
                   aria-pressed={selected}
                   onClick={() => handleVariantSelect(variant.id)}
-                  className={`flex w-full flex-col rounded-[16px] border p-3.5 text-left transition-colors ${
+                  className={`flex w-full items-center justify-between gap-2 rounded-[12px] border px-3 py-2.5 text-left transition-colors ${
                     selected
                       ? 'border-[var(--apple-blue)] bg-[var(--apple-blue)]/[0.06]'
                       : 'border-[var(--apple-separator-subtle)] bg-[var(--apple-bg-secondary)] hover:border-[var(--apple-separator-strong)]'
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[13.5px] font-semibold text-[var(--apple-label-primary)]">
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-medium text-[var(--apple-label-primary)]">
                       {variant.label}
-                    </span>
-                    {selected && (
-                      <SFCheckmark size={13} className="text-[var(--apple-blue)]" />
-                    )}
+                    </p>
+                    <p className="truncate text-[11.5px] text-[var(--apple-label-secondary)]">
+                      {variant.description}
+                    </p>
                   </div>
-                  <span className="type-footnote mt-1 font-normal text-[var(--apple-label-secondary)]">
-                    {variant.description}
-                  </span>
+                  {selected && (
+                    <Check size={13} strokeWidth={2} aria-hidden="true" className="shrink-0 text-[var(--apple-blue)]" />
+                  )}
                 </button>
               );
             })}
           </div>
 
-          {/* Interactive Intensity & Secondary Sliders */}
-          <div className="space-y-4 border-t border-[var(--apple-separator-subtle)] pt-5">
+          {/* Sliders */}
+          <div className="space-y-3.5 border-t border-[var(--apple-separator-subtle)] pt-4">
             <div>
-              <div className="flex items-center justify-between text-[13px]">
+              <div className="flex items-center justify-between text-[12.5px]">
                 <label
                   htmlFor={`slider-primary-${activeTrack.id}`}
                   className="font-medium text-[var(--apple-label-primary)]"
@@ -802,12 +783,12 @@ export function EffectsLabSection({
                     intensity: Number(e.target.value),
                   })
                 }
-                className="mt-2 w-full accent-[var(--apple-blue)]"
+                className="mt-1.5 w-full accent-[var(--apple-blue)]"
               />
             </div>
 
             <div>
-              <div className="flex items-center justify-between text-[13px]">
+              <div className="flex items-center justify-between text-[12.5px]">
                 <label
                   htmlFor={`slider-secondary-${activeTrack.id}`}
                   className="font-medium text-[var(--apple-label-primary)]"
@@ -833,22 +814,22 @@ export function EffectsLabSection({
                     secondary: Number(e.target.value),
                   })
                 }
-                className="mt-2 w-full accent-[var(--apple-blue)]"
+                className="mt-1.5 w-full accent-[var(--apple-blue)]"
               />
             </div>
           </div>
 
-          {/* Preview Component Switcher */}
-          <div className="border-t border-[var(--apple-separator-subtle)] pt-5">
-            <p className="type-caption mb-2 text-[var(--apple-label-tertiary)]">
-              Production Specimen
+          {/* Specimen Switcher */}
+          <div className="border-t border-[var(--apple-separator-subtle)] pt-4">
+            <p className="mb-2 text-[11.5px] font-medium text-[var(--apple-label-tertiary)]">
+              Preview Specimen
             </p>
             <div className="flex flex-wrap gap-1.5">
               {(
                 [
-                  { id: 'card', label: 'Case Card' },
-                  { id: 'editorial', label: 'Editorial Surface' },
-                  { id: 'audio', label: 'AudioPlayer' },
+                  { id: 'card', label: 'Card' },
+                  { id: 'editorial', label: 'Editorial' },
+                  { id: 'audio', label: 'Audio' },
                   { id: 'prototype', label: 'Prototype' },
                 ] as const
               ).map((comp) => {
@@ -876,12 +857,12 @@ export function EffectsLabSection({
           </div>
         </aside>
 
-        {/* Live Comparison Stage + Approval Workflow Bar */}
-        <div className="space-y-5 lg:col-span-8">
+        {/* Live Stage + Decision + Copy CSS */}
+        <div className="space-y-4 lg:col-span-8">
           <div
             className={
               compareMode === 'side-by-side'
-                ? 'grid grid-cols-1 gap-5 xl:grid-cols-2'
+                ? 'grid grid-cols-1 gap-4 xl:grid-cols-2'
                 : 'grid grid-cols-1'
             }
           >
@@ -889,59 +870,145 @@ export function EffectsLabSection({
             {renderSpecimen(true)}
           </div>
 
-          {/* P1.4 Direct Visual Approval Bar */}
-          <div className="rounded-[22px] border border-[var(--apple-separator)] bg-[var(--apple-surface-elevated)] p-5">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="type-caption text-[var(--apple-link)]">
-                Approval Workflow · EXPLORE → COMPARE → APPROVE / REJECT → IMPLEMENT
-              </p>
-              <span className="type-footnote font-normal text-[var(--apple-label-tertiary)]">
-                Context: {sandboxPalette === 'cool' ? 'Cool' : 'Warm'} · {sandboxTheme}
-              </span>
-            </div>
-
-            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
+          {/* Inline Decision Bar */}
+          <div className="rounded-[16px] border border-[var(--apple-separator)] bg-[var(--apple-surface-elevated)] p-4">
+            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
               <input
                 type="text"
                 value={rationale}
                 onChange={(e) => setRationale(e.target.value)}
-                placeholder={`Rationale for ${activeVariant.label} (optional)…`}
+                placeholder={`Note for ${activeVariant.label} (optional)…`}
                 aria-label="Decision rationale note"
-                className="apple-input min-h-[40px] flex-1 rounded-[12px] px-3.5 py-2 text-[14px]"
+                className="apple-input min-h-[36px] flex-1 rounded-[10px] px-3 py-1.5 text-[13px]"
               />
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => handleRecordStatus('exploring')}
-                  className="apple-btn-tonal !min-h-[38px] !px-3.5 !py-1.5 !text-[12.5px]"
+                  className="apple-btn-tonal !min-h-[34px] whitespace-nowrap !px-3 !py-1 !text-[12px]"
                 >
-                  Log Exploring
+                  Exploring
                 </button>
                 <button
                   type="button"
                   onClick={() => handleRecordStatus('approved')}
-                  className="apple-btn-primary !min-h-[38px] !px-4 !py-1.5 !text-[12.5px]"
+                  className="apple-btn-primary !min-h-[34px] whitespace-nowrap !px-3.5 !py-1 !text-[12px]"
                 >
                   Approve
                 </button>
                 <button
                   type="button"
                   onClick={() => handleRecordStatus('rejected')}
-                  className="apple-btn-outline !min-h-[38px] !px-3.5 !py-1.5 !text-[12.5px]"
+                  className="apple-btn-outline !min-h-[34px] whitespace-nowrap !px-3 !py-1 !text-[12px]"
                 >
                   Reject
                 </button>
               </div>
             </div>
-
             {feedback && (
-              <p role="status" className="type-footnote mt-3 text-[var(--apple-link)]">
+              <p role="status" className="mt-2 text-[12.5px] text-[var(--apple-link)]">
                 {feedback}
               </p>
             )}
           </div>
+
+          {/* Compact Copyable CSS */}
+          <div className="rounded-[16px] border border-[var(--apple-separator)] bg-[var(--apple-surface-elevated)] p-4">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[12px] font-medium text-[var(--apple-label-tertiary)]">
+                Experimental CSS
+              </span>
+              <CopyTokenButton value={generatedCss} label="Copy CSS" compact />
+            </div>
+            <pre className="mt-2.5 overflow-x-auto rounded-[12px] bg-[var(--apple-bg-secondary)] p-3 font-mono text-[11.5px] leading-[1.55] text-[var(--apple-label-primary)]">
+              <code>{generatedCss}</code>
+            </pre>
+          </div>
         </div>
       </div>
+
+      {/* Scannable Production vs. Experimental Material Grid */}
+      <section
+        aria-labelledby="ws-material-index-heading"
+        className="border-t border-[var(--apple-separator)] pt-10"
+      >
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h3 id="ws-material-index-heading" className="type-title-3 text-[var(--apple-label-primary)]">
+              Materials Overview
+            </h3>
+            <p className="mt-1 text-[13.5px] text-[var(--apple-label-secondary)]">
+              Live portfolio surfaces alongside experimental sandbox treatments.
+            </p>
+          </div>
+
+          <div className="apple-segmented shrink-0" role="group" aria-label="Filter materials by status">
+            {(
+              [
+                { id: 'all', label: `All (${MATERIAL_SYSTEM_MATRIX.length})` },
+                {
+                  id: 'production',
+                  label: `Production (${MATERIAL_SYSTEM_MATRIX.filter((m) => m.status === 'production').length})`,
+                },
+                {
+                  id: 'experimental',
+                  label: `Experimental (${MATERIAL_SYSTEM_MATRIX.filter((m) => m.status === 'experimental').length})`,
+                },
+              ] as const
+            ).map((item) => {
+              const active = materialFilter === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => {
+                    playTick();
+                    setMaterialFilter(item.id);
+                  }}
+                  className={`apple-segmented-item !min-h-[30px] whitespace-nowrap px-3 text-[12px] ${
+                    active
+                      ? 'apple-pill-shadow bg-[var(--apple-control-thumb)] text-[var(--apple-label-primary)]'
+                      : 'text-[var(--apple-label-secondary)]'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+          {visibleMaterials.map((mat) => (
+            <article
+              key={mat.id}
+              className="rounded-[16px] border border-[var(--apple-separator)] bg-[var(--apple-surface-elevated)] p-5"
+            >
+              <div className="flex items-baseline justify-between gap-2">
+                <h4 className="text-[14.5px] font-semibold text-[var(--apple-label-primary)]">
+                  {mat.name}
+                </h4>
+                <span
+                  className={`shrink-0 text-[11.5px] font-medium ${
+                    mat.status === 'experimental'
+                      ? 'text-[var(--apple-link)]'
+                      : 'text-[var(--apple-label-tertiary)]'
+                  }`}
+                >
+                  {mat.status === 'experimental' ? 'Experimental' : 'Production'}
+                </span>
+              </div>
+              <p className="mt-1 font-mono text-[11px] text-[var(--apple-label-tertiary)]">
+                {mat.tokensOrCss}
+              </p>
+              <p className="mt-2.5 text-[13px] leading-[1.55] text-[var(--apple-label-secondary)]">
+                {mat.guidance}
+              </p>
+            </article>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

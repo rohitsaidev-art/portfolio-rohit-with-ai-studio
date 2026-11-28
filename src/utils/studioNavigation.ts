@@ -61,8 +61,7 @@ export const STUDIO_NAV_GROUPS: readonly StudioNavGroup[] = [
         status: 'live',
         supportsSandboxContext: true,
         description:
-          'Architecture index for tokens, components, behaviour specifications, isolated explorations, and the visual approval log.',
-        migratedModules: 'Studio Index & Sandbox Controls',
+          'Unified visual canvas across Library, Foundations, Behaviour, and Exploration — select any preview to inspect live.',
       },
       {
         id: 'colour-themes',
@@ -73,8 +72,7 @@ export const STUDIO_NAV_GROUPS: readonly StudioNavGroup[] = [
         status: 'live',
         supportsSandboxContext: true,
         description:
-          'Compare Cool Neutral and Warm Neutral foundations alongside Light, Dark, and System appearance calibration.',
-        migratedModules: 'Modules 02 & 03 · Palettes & Appearance',
+          'Compare Cool and Warm neutral palettes, inspect semantic colour swatches, and test foreground contrast across Light and Dark modes.',
       },
       {
         id: 'typography',
@@ -85,8 +83,7 @@ export const STUDIO_NAV_GROUPS: readonly StudioNavGroup[] = [
         status: 'live',
         supportsSandboxContext: true,
         description:
-          'Production Apple Dynamic Type scale, optical sizing discipline, and 60ch editorial prose measures.',
-        migratedModules: 'Module 01 · Dynamic Type Scale',
+          'Optical SF Pro type stacks, responsive Dynamic Type specimens, and editorial reading widths.',
       },
       {
         id: 'spacing-layout',
@@ -97,20 +94,18 @@ export const STUDIO_NAV_GROUPS: readonly StudioNavGroup[] = [
         status: 'live',
         supportsSandboxContext: true,
         description:
-          'Spatial rhythm tokens, 1160px editorial grid boundaries, and container-to-child padding hierarchy.',
-        migratedModules: 'Module 04 · Spatial Geometry',
+          'Visual spacing scale, container-to-child padding proportions, and responsive grid breakpoints.',
       },
       {
         id: 'surfaces-elevation',
-        label: 'Surfaces, Borders & Elevation',
+        label: 'Surfaces & Elevation',
         path: '/design-system/surfaces-elevation',
         groupId: 'foundations',
         groupLabel: 'Foundations',
         status: 'live',
         supportsSandboxContext: true,
         description:
-          'Corner radii scale, hairline separator contrast, and physical shadow layers calibrated per appearance.',
-        migratedModules: 'Modules 05 & 06 · Geometry & Depth',
+          'Surface planes, concentric corner radii, hairline borders, and Light vs. Dark shadow elevation.',
       },
     ],
   },
@@ -127,8 +122,7 @@ export const STUDIO_NAV_GROUPS: readonly StudioNavGroup[] = [
         status: 'live',
         supportsSandboxContext: true,
         description:
-          'Complete interactive portfolio component library across 8 categories (40 production components, 1 experimental specimen) with 13-point documentation, live playgrounds, and viewport previews.',
-        migratedModules: 'Cycle 2 Stage 3 · 8 Categories · 41 Components',
+          'Visual inventory of all 43 portfolio components across eight categories. Select any tile to inspect variants and live states.',
       },
       {
         id: 'patterns',
@@ -136,20 +130,10 @@ export const STUDIO_NAV_GROUPS: readonly StudioNavGroup[] = [
         path: '/design-system/patterns',
         groupId: 'library',
         groupLabel: 'Library',
-        status: 'planned',
-        supportsSandboxContext: false,
+        status: 'live',
+        supportsSandboxContext: true,
         description:
-          'Planned destination for multi-component editorial patterns across case studies, reading controls, and discovery flows.',
-        plannedScope: [
-          'Case study reading-depth switching (2-Min Skim vs. Full Story)',
-          'Command Palette (⌘K) search and keyboard navigation patterns',
-          'Recruiter Shortlist drawer and shareable URL restoration flows',
-          'Lightbox gallery inspection and non-stacking toast feedback',
-        ],
-        relatedPaths: [
-          { label: 'Inspect live Components', path: '/design-system/components' },
-          { label: 'Review Interaction States', path: '/design-system/interaction-states' },
-        ],
+          'Twelve recurring portfolio compositions built from production components, with proposed patterns clearly separated.',
       },
       {
         id: 'page-templates',
@@ -157,20 +141,10 @@ export const STUDIO_NAV_GROUPS: readonly StudioNavGroup[] = [
         path: '/design-system/page-templates',
         groupId: 'library',
         groupLabel: 'Library',
-        status: 'planned',
-        supportsSandboxContext: false,
+        status: 'live',
+        supportsSandboxContext: true,
         description:
-          'Planned structural blueprints documenting composition rules for Home, Case Study, Notes, About, and Contact pages.',
-        plannedScope: [
-          'Selected Work index grid and filter-bar geometry',
-          'Long-form Case Study chapter cadence and sticky TOC placement',
-          'Design Journal index and single-column reading template',
-          'About practice timeline and validated Contact inquiry layout',
-        ],
-        relatedPaths: [
-          { label: 'Spacing & Layout geometry', path: '/design-system/spacing-layout' },
-          { label: 'Open TOC Lab', path: '/design-system/toc-lab' },
-        ],
+          'Interactive structural blueprints for all seven portfolio routes across desktop, tablet, and mobile.',
       },
     ],
   },
@@ -187,8 +161,7 @@ export const STUDIO_NAV_GROUPS: readonly StudioNavGroup[] = [
         status: 'live',
         supportsSandboxContext: true,
         description:
-          'Standardized Default, Hover, Pressed, Focus-Visible, Disabled, Error, and Loading feedback across interactive controls.',
-        migratedModules: 'Module 09 · Interaction State Matrix',
+          'Live state testing across buttons, links, inputs, and cards alongside keyboard, touch, and focus rules.',
       },
       {
         id: 'motion',
@@ -197,10 +170,9 @@ export const STUDIO_NAV_GROUPS: readonly StudioNavGroup[] = [
         groupId: 'behaviour',
         groupLabel: 'Behaviour',
         status: 'live',
-        supportsSandboxContext: false,
+        supportsSandboxContext: true,
         description:
-          'Compositor-only route choreography, spring physics, zero-jank disclosures, and synchronized easing curve comparisons.',
-        migratedModules: 'Modules 10 & 11 · Choreography & Curves',
+          'Interactive motion playground, easing curves, spring physics, and reduced-motion comparisons.',
       },
       {
         id: 'icons-sound',
@@ -211,8 +183,7 @@ export const STUDIO_NAV_GROUPS: readonly StudioNavGroup[] = [
         status: 'live',
         supportsSandboxContext: false,
         description:
-          'Custom Apple SF-proportioned SVG symbols, animated Lucide specimens, and Web Audio tactile interaction cues.',
-        migratedModules: 'Modules 08 & 12 · Iconography & Sound Studio',
+          'SF-proportioned SVG symbols, animated Lucide icons, optical sizes, and tactile Web Audio cues.',
       },
     ],
   },
@@ -222,15 +193,14 @@ export const STUDIO_NAV_GROUPS: readonly StudioNavGroup[] = [
     items: [
       {
         id: 'effects',
-        label: 'Materials & Effects Lab',
+        label: 'Materials & Effects',
         path: '/design-system/effects',
         groupId: 'exploration',
         groupLabel: 'Exploration',
         status: 'live',
         supportsSandboxContext: true,
         description:
-          'Seven isolated visual exploration tracks for texture, glass, blur, and subtle depth—strictly decoupled from production CSS.',
-        migratedModules: 'P1.3 · 7 Isolated Effects Tracks',
+          'Isolated visual sandbox for texture, glass, blur, elevation, and border treatments — completely decoupled from live pages.',
       },
       {
         id: 'toc-lab',
@@ -241,8 +211,7 @@ export const STUDIO_NAV_GROUPS: readonly StudioNavGroup[] = [
         status: 'live',
         supportsSandboxContext: false,
         description:
-          'Compare five Apple-grade Table of Contents architectures on a live scrolling narrative and promote the preferred pattern.',
-        migratedModules: 'Module 14 · Case Study TOC Architecture',
+          'Compare seven case-study Table of Contents architectures on a live scrolling reading layout.',
       },
       {
         id: 'experiments',
@@ -250,19 +219,10 @@ export const STUDIO_NAV_GROUPS: readonly StudioNavGroup[] = [
         path: '/design-system/experiments',
         groupId: 'exploration',
         groupLabel: 'Exploration',
-        status: 'planned',
-        supportsSandboxContext: false,
+        status: 'live',
+        supportsSandboxContext: true,
         description:
-          'Planned workspace for side-by-side design snapshots and versioned comparisons prior to Decision Log promotion.',
-        plannedScope: [
-          'Side-by-side comparison of candidate hero and case-study compositions',
-          'Snapshot checkpoints tied directly to Decision Log rationale entries',
-          'Rollback and archive inspection for retired visual experiments',
-        ],
-        relatedPaths: [
-          { label: 'Explore Materials & Effects Lab', path: '/design-system/effects' },
-          { label: 'View Decision Log', path: '/design-system/decisions' },
-        ],
+          'Create visual studies, capture version snapshots, compare before and after, and send decisions to the log.',
       },
     ],
   },
@@ -276,20 +236,10 @@ export const STUDIO_NAV_GROUPS: readonly StudioNavGroup[] = [
         path: '/design-system/documentation',
         groupId: 'system',
         groupLabel: 'System',
-        status: 'planned',
+        status: 'live',
         supportsSandboxContext: false,
         description:
-          'Planned engineering and editorial handbook covering token naming, accessibility guardrails, and promotion governance.',
-        plannedScope: [
-          'Semantic CSS custom-property naming and theme pairing conventions',
-          'WCAG 2.2 AA contrast verification and keyboard focus-ring standards',
-          'Route architecture, workspace navigation, and indexing governance rules',
-          'Step-by-step promotion process from Studio exploration to public CSS',
-        ],
-        relatedPaths: [
-          { label: 'Inspect Decision Log', path: '/design-system/decisions' },
-          { label: 'Review Colour & Themes', path: '/design-system/colour-themes' },
-        ],
+          'Quick searchable index to jump straight to any foundation, component, behaviour, or exploration view.',
       },
       {
         id: 'decisions',
@@ -300,8 +250,7 @@ export const STUDIO_NAV_GROUPS: readonly StudioNavGroup[] = [
         status: 'live',
         supportsSandboxContext: false,
         description:
-          'Structured visual approval workflow with local persistence, JSON import/export, Markdown summaries, and controlled token promotion.',
-        migratedModules: 'P1.4 & P2.1 · Approval & Promotion Log',
+          'Readable record of visual approvals, rejections, rationale, and production token promotions.',
       },
     ],
   },
@@ -327,8 +276,8 @@ export interface PrimaryNavItem {
 export const PRIMARY_NAV_ITEMS: readonly PrimaryNavItem[] = [
   {
     label: 'Work',
-    path: '/',
-    match: (r) => r.page === 'home' || r.page === 'case-study',
+    path: '/work',
+    match: (r) => r.page === 'work' || r.page === 'case-study',
   },
   {
     label: 'Notes',

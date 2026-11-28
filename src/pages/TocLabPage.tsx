@@ -8,13 +8,15 @@ import {
   type TocChapter,
 } from '../components/TableOfContents';
 import { AudioPlayer } from '../components/AudioPlayer';
-import {
-  SFCheckmark,
-  SFChevronRight,
-  SFSidebarLeft,
-} from '../components/SFSymbols';
+import { Check, ChevronRight, PanelLeft } from 'lucide-react';
 import type { NarrationSegment } from '../utils/readAloud';
-import { scrollToElementById } from '../utils/scroll';
+import {
+  ANCHOR_BREATHING_ROOM_PX,
+  STICKY_HEADER_HEIGHT_PX,
+  STICKY_SUBNAV_HEIGHT_PX,
+  resolveActiveSectionId,
+  scrollToElementById,
+} from '../utils/scroll';
 import { playSuccessChime, playTick } from '../utils/soundEngine';
 
 interface TocLabPageProps {
@@ -38,7 +40,7 @@ const SAMPLE_CHAPTERS: readonly SampleChapter[] = [
     lead: 'Navigation in long-form case studies should orient without competing for attention.',
     body: [
       'A Table of Contents plays a quiet supporting role. When a reader is absorbed in a case study, a heavy bordered sidebar steals visual weight from photography, prototypes, and typographic rhythm.',
-      'This sandbox lets us test five distinct Apple-inspired navigation architectures on a live scrolling document—comparing peripheral notch minimaps, floating iOS capsules, sticky local ribbons, macOS inspector rails, and physical draggable scrubbers.',
+      'This sandbox lets us test seven distinct Apple-inspired navigation architectures on a live scrolling document—comparing peripheral notch minimaps, floating iOS capsules, sticky local ribbons, macOS inspector rails, draggable detent scrubbers, minimalist editorial chapter scrubbers, and spring-driven wave chapter scrubbers.',
     ],
     note: 'Scroll naturally, click any chapter, or test the Read Aloud scrubber above to watch both systems stay synchronized.',
   },
@@ -81,7 +83,7 @@ const SAMPLE_CHAPTERS: readonly SampleChapter[] = [
     label: 'Audio Synchronization',
     lead: 'Pairing Read Aloud with live chapter indicators gives readers two ways to scan.',
     body: [
-      'Some hiring managers and founders skim visually; others listen while reviewing decks or commuting. Showing a subtle SF Symbol waveform beside the currently narrated chapter connects the floating audio bar directly to the TOC.',
+      'Some hiring managers and founders skim visually; others listen while reviewing decks or commuting. Showing a subtle Lucide waveform beside the currently narrated chapter connects the floating audio bar directly to the TOC.',
       'Use the inline player or floating dock to play, pause, jump ±15 seconds, or drag straight to any chapter.',
     ],
     note: 'Press Play in the Read Aloud bar above and watch the waveform follow whichever chapter is currently being read.',
@@ -119,6 +121,17 @@ export function TocLabPage({
     TOC_VARIANTS.find((v) => v.id === previewVariant) ?? TOC_VARIANTS[0];
   const isApplied = appliedTocVariant === previewVariant;
 
+  const tocChapters: TocChapter[] = useMemo(
+    () =>
+      SAMPLE_CHAPTERS.map((ch) => ({
+        id: ch.id,
+        num: ch.num,
+        label: ch.label,
+        subtitle: ch.lead,
+      })),
+    [],
+  );
+
   const narrationSegments: NarrationSegment[] = useMemo(
     () =>
       SAMPLE_CHAPTERS.map((ch) => ({
@@ -151,20 +164,80 @@ export function TocLabPage({
     ).filter((el): el is HTMLElement => el !== null);
     if (elements.length === 0) return;
 
+    const headerOffsetPx =
+      previewVariant === 'apple-local-nav'
+        ? STICKY_HEADER_HEIGHT_PX +
+          STICKY_SUBNAV_HEIGHT_PX +
+          ANCHOR_BREATHING_ROOM_PX
+        : STICKY_HEADER_HEIGHT_PX + ANCHOR_BREATHING_ROOM_PX;
+
+    const intersectingIds = new Set<string>();
+    let rafId: number | null = null;
+
+    const syncActiveSection = () => {
+      const viewportHeight = window.innerHeight || 900;
+      const isAtPageBottom =
+        window.scrollY + viewportHeight >=
+        document.documentElement.scrollHeight - 24;
+
+      const metrics = elements.map((el) => {
+        const rect = el.getBoundingClientRect();
+        return {
+          id: el.id,
+          top: rect.top,
+          bottom: rect.bottom,
+          isIntersecting: intersectingIds.has(el.id),
+        };
+      });
+
+      const nextActive = resolveActiveSectionId({
+        sections: metrics,
+        headerOffsetPx,
+        viewportHeight,
+        isAtPageBottom,
+      });
+
+      if (nextActive) {
+        setActiveChapter(nextActive);
+      }
+    };
+
+    const scheduleSync = () => {
+      if (rafId !== null) return;
+      rafId = window.requestAnimationFrame(() => {
+        rafId = null;
+        syncActiveSection();
+      });
+    };
+
     const observer = new IntersectionObserver(
       (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (visible.length > 0) {
-          setActiveChapter(visible[0].target.id);
-        }
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            intersectingIds.add(entry.target.id);
+          } else {
+            intersectingIds.delete(entry.target.id);
+          }
+        });
+        syncActiveSection();
       },
-      { rootMargin: '-22% 0px -60% 0px', threshold: 0.05 },
+      {
+        rootMargin: `-${headerOffsetPx}px 0px -55% 0px`,
+        threshold: [0, 0.1, 0.25, 0.5],
+      },
     );
 
     elements.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
+    window.addEventListener('scroll', scheduleSync, { passive: true });
+    syncActiveSection();
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('scroll', scheduleSync);
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId);
+      }
+    };
   }, [previewVariant]);
 
   const scrollToChapter = useCallback((id: string) => {
@@ -175,7 +248,10 @@ export function TocLabPage({
   const usesSidebarColumn =
     previewVariant === 'notch-rail' ||
     previewVariant === 'macos-sidebar' ||
-    previewVariant === 'tactile-scrubber';
+    previewVariant === 'tactile-scrubber' ||
+    previewVariant === 'chapter-scrubber' ||
+    previewVariant === 'wave-scrubber' ||
+    previewVariant === 'scroll-index';
 
   return (
     <div className="bg-[var(--apple-bg)]">
@@ -196,14 +272,14 @@ export function TocLabPage({
           >
             <div>
               <p className="type-eyebrow inline-flex items-center gap-1.5 text-[var(--apple-link)]">
-                <SFSidebarLeft size={16} />
+                <PanelLeft size={16} strokeWidth={1.75} aria-hidden="true" />
                 <span>Module 14 · Internal TOC Lab</span>
               </p>
               <h2 className="type-title-1 measure-title mt-3">
                 Experimenting with Apple-grade Table of Contents patterns.
               </h2>
               <p className="type-lead measure-lead mt-4">
-                Compare five distinct navigation studies live on a scrolling narrative. Apply your favorite design to update every case study across the portfolio.
+                Compare seven distinct navigation studies live on a scrolling narrative. Apply your favorite design to update every case study across the portfolio.
               </p>
             </div>
 
@@ -218,7 +294,7 @@ export function TocLabPage({
               >
                 {isApplied ? (
                   <>
-                    <SFCheckmark size={15} className="text-[var(--apple-blue)]" />
+                    <Check size={15} strokeWidth={1.75} aria-hidden="true" className="text-[var(--apple-blue)]" />
                     <span>Active on Case Studies</span>
                   </>
                 ) : (
@@ -235,7 +311,7 @@ export function TocLabPage({
                 className="apple-btn-outline"
               >
                 <span>Preview on StallSync</span>
-                <SFChevronRight size={14} />
+                <ChevronRight size={14} strokeWidth={1.75} aria-hidden="true" />
               </a>
             </div>
           </motion.div>
@@ -285,7 +361,7 @@ export function TocLabPage({
           </div>
 
           {/* Active Study Rationale Sheet */}
-          <div className="apple-surface-subtle mt-6 grid grid-cols-1 gap-6 rounded-[26px] p-6 sm:p-8 lg:grid-cols-12 lg:items-center">
+          <div className="apple-surface-subtle mt-6 grid grid-cols-1 gap-6 rounded-[20px] p-6 sm:p-8 lg:grid-cols-12 lg:items-center">
             <div className="lg:col-span-5">
               <p className="type-caption text-[var(--apple-link)]">
                 {selectedMeta.inspiration}
@@ -311,7 +387,7 @@ export function TocLabPage({
       {previewVariant === 'apple-local-nav' && (
         <TableOfContents
           variant="apple-local-nav"
-          chapters={SAMPLE_CHAPTERS}
+          chapters={tocChapters}
           activeChapter={activeChapter}
           readingProgress={readingProgress}
           narratingChapterId={narratingChapterId}
@@ -343,7 +419,7 @@ export function TocLabPage({
           <div className="mb-8">
             <TableOfContents
               variant="ios-capsule"
-              chapters={SAMPLE_CHAPTERS}
+              chapters={tocChapters}
               activeChapter={activeChapter}
               readingProgress={readingProgress}
               narratingChapterId={narratingChapterId}
@@ -361,10 +437,10 @@ export function TocLabPage({
           }
         >
           {usesSidebarColumn && (
-            <aside className="hidden lg:col-span-3 lg:block">
+            <aside className="relative z-30 hidden lg:col-span-3 lg:block">
               <TableOfContents
                 variant={previewVariant}
-                chapters={SAMPLE_CHAPTERS}
+                chapters={tocChapters}
                 activeChapter={activeChapter}
                 readingProgress={readingProgress}
                 narratingChapterId={narratingChapterId}
@@ -381,7 +457,7 @@ export function TocLabPage({
                 <article
                   key={chapter.id}
                   id={chapter.id}
-                  className={`scroll-mt-32 rounded-[28px] p-7 transition-all duration-300 sm:p-10 ${
+                  className={`scroll-mt-32 rounded-[20px] p-7 transition-[background-color,box-shadow] duration-300 sm:p-10 ${
                     isNarrating
                       ? 'bg-[var(--apple-blue)]/[0.06] ring-1 ring-[var(--apple-blue)]/30'
                       : 'bg-[var(--apple-bg-secondary)]'

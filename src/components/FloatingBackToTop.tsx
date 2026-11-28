@@ -7,7 +7,7 @@ import {
 import { EASE_APPLE } from '../utils/motion';
 import { prefersReducedMotion, scrollToTop } from '../utils/scroll';
 import { playTick } from '../utils/soundEngine';
-import { SFArrowUp } from './SFSymbols';
+import { ArrowUp } from 'lucide-react';
 
 interface FloatingBackToTopProps {
   /** Scroll distance in pixels before revealing the floating control */
@@ -73,8 +73,10 @@ export function FloatingBackToTop({ threshold = 480 }: FloatingBackToTopProps) {
             title="Back to top"
             className="apple-ios-bar group inline-flex h-11 items-center gap-2 rounded-full px-3.5 text-[13px] font-medium tracking-[-0.01em] text-[var(--apple-label-primary)] transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.96] sm:px-4"
           >
-            <SFArrowUp
+            <ArrowUp
               size={14}
+              strokeWidth={1.75}
+              aria-hidden="true"
               className="text-[var(--apple-label-secondary)] transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:text-[var(--apple-link)]"
             />
             <span className="hidden sm:inline">Top</span>

@@ -167,6 +167,139 @@ const CLEAR_SYSTEM_VOICES: readonly RegExp[] = [
 ];
 
 /**
+ * Known female Web Speech voice identifiers across macOS, iOS, Windows, Edge,
+ * Chrome, and Android so male-only narration pickers exclude them reliably.
+ */
+const FEMALE_VOICE_PATTERNS: readonly RegExp[] = [
+  /\bfemale\b/i,
+  /\bwoman\b/i,
+  /\bgirl\b/i,
+  /\bgoogle us english\b/i,
+  /\bsamantha\b/i,
+  /\bvictoria\b/i,
+  /\bkaren\b/i,
+  /\bmoira\b/i,
+  /\btessa\b/i,
+  /\bfiona\b/i,
+  /\bveena\b/i,
+  /\bava\b/i,
+  /\ballison\b/i,
+  /\bsusan\b/i,
+  /\bzoe\b/i,
+  /\bnicky\b/i,
+  /\bnoelle\b/i,
+  /\bserena\b/i,
+  /\bmartha\b/i,
+  /\bkate\b/i,
+  /\bstephanie\b/i,
+  /\bmatilda\b/i,
+  /\bisha\b/i,
+  /\bsangeeta\b/i,
+  /\bvicki\b/i,
+  /\bagnes\b/i,
+  /\baria\b/i,
+  /\bjenny\b/i,
+  /\bzira\b/i,
+  /\bhazel\b/i,
+  /\bsonia\b/i,
+  /\blibby\b/i,
+  /\bmaisie\b/i,
+  /\bnatasha\b/i,
+  /\bclara\b/i,
+  /\bemily\b/i,
+  /\bneerja\b/i,
+  /\bmichelle\b/i,
+  /\bana\b/i,
+  /\bashley\b/i,
+  /\bcora\b/i,
+  /\belizabeth\b/i,
+  /\bemma\b/i,
+  /\bjane\b/i,
+  /\bmonica\b/i,
+  /\bnancy\b/i,
+  /\bsara\b/i,
+  /\bcatherine\b/i,
+  /\blinda\b/i,
+  /\bheera\b/i,
+  /\beva\b/i,
+  /\bmia\b/i,
+  /\bleah\b/i,
+  /\bluna\b/i,
+  /\bmolly\b/i,
+  /\brosa\b/i,
+  /\bsiri\b.*\b(voice\s*[135])\b/i,
+];
+
+/**
+ * Recognized male Web Speech voice names across Apple, Google, and Microsoft
+ * speech engines.
+ */
+const MALE_VOICE_PATTERNS: readonly RegExp[] = [
+  /\bmale\b/i,
+  /\bdaniel\b/i,
+  /\balex\b/i,
+  /\barthur\b/i,
+  /\baaron\b/i,
+  /\bevan\b/i,
+  /\boliver\b/i,
+  /\bjamie\b/i,
+  /\brishi\b/i,
+  /\bgordon\b/i,
+  /\blee\b/i,
+  /\bmalcolm\b/i,
+  /\bnathan\b/i,
+  /\btom\b/i,
+  /\bbruce\b/i,
+  /\bmartin\b/i,
+  /\bdavid\b/i,
+  /\bmark\b/i,
+  /\bgeorge\b/i,
+  /\bguy\b/i,
+  /\bryan\b/i,
+  /\bandrew\b/i,
+  /\bbrian\b/i,
+  /\bchristopher\b/i,
+  /\beric\b/i,
+  /\broger\b/i,
+  /\bsteffan\b/i,
+  /\btony\b/i,
+  /\bbrandon\b/i,
+  /\bdavis\b/i,
+  /\bjacob\b/i,
+  /\bjason\b/i,
+  /\bliam\b/i,
+  /\bmitchell\b/i,
+  /\bwilliam\b/i,
+  /\bconnor\b/i,
+  /\bprabhat\b/i,
+  /\bsam\b/i,
+  /\bluke\b/i,
+  /\bjames\b/i,
+  /\brichard\b/i,
+  /\bsean\b/i,
+  /\bravi\b/i,
+  /\bsiri\b.*\b(voice\s*[24])\b/i,
+];
+
+export function isLikelyFemaleVoice(voice: SpeechVoiceDescriptor): boolean {
+  const signature = `${voice.name} ${voice.voiceURI}`;
+  if (/\bmale\b/i.test(signature) && !/\bfemale\b/i.test(signature)) {
+    return false;
+  }
+  return FEMALE_VOICE_PATTERNS.some((pattern) => pattern.test(signature));
+}
+
+export function isLikelyMaleVoice(voice: SpeechVoiceDescriptor): boolean {
+  const signature = `${voice.name} ${voice.voiceURI}`;
+  if (isLikelyFemaleVoice(voice)) return false;
+  return MALE_VOICE_PATTERNS.some((pattern) => pattern.test(signature));
+}
+
+export interface RankSpeechVoicesOptions {
+  gender?: 'all' | 'male';
+}
+
+/**
  * Classifies a Web Speech voice into its provider family so Google and Apple
  * neural voices receive top priority and provider-tuned prosody.
  */
@@ -336,6 +469,7 @@ export function splitIntoSpeechChunks(
 export function rankSpeechVoices<T extends SpeechVoiceDescriptor>(
   voices: readonly T[],
   maxCount = 14,
+  options?: RankSpeechVoicesOptions,
 ): RankedSpeechVoice<T>[] {
   if (!Array.isArray(voices) || voices.length === 0) {
     return [];
@@ -358,7 +492,20 @@ export function rankSpeechVoices<T extends SpeechVoiceDescriptor>(
   const withoutNovelty = pool.filter(
     (v) => !EXCLUDED_VOICE_NAME_PATTERNS.some((pattern) => pattern.test(v.name)),
   );
-  const candidates = withoutNovelty.length > 0 ? withoutNovelty : pool;
+  let candidates = withoutNovelty.length > 0 ? withoutNovelty : pool;
+
+  if (options?.gender === 'male') {
+    const confirmedMale = candidates.filter((v) => isLikelyMaleVoice(v));
+    if (confirmedMale.length > 0) {
+      candidates = confirmedMale;
+    } else {
+      const nonFemale = candidates.filter((v) => !isLikelyFemaleVoice(v));
+      candidates = nonFemale;
+    }
+    if (candidates.length === 0) {
+      return [];
+    }
+  }
 
   const scored: RankedSpeechVoice<T>[] = candidates.map((voice) => {
     const name = voice.name;

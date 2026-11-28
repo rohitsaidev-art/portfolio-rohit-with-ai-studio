@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { playTick } from '../utils/soundEngine';
-import { SFChevronLeft, SFChevronRight } from './SFSymbols';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 export interface BeforeAfterComparatorProps {
   beforeSrc: string;
@@ -124,7 +124,7 @@ export function BeforeAfterComparator({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onKeyDown={handleKeyDown}
-        className="apple-card-static relative aspect-[16/9] w-full touch-none select-none overflow-hidden rounded-[24px] bg-[var(--apple-bg-secondary)] cursor-ew-resize"
+        className="apple-card-static relative aspect-[16/9] w-full touch-none select-none overflow-hidden rounded-[20px] bg-[var(--apple-bg-secondary)] cursor-ew-resize"
       >
         {/* Base Layer: After */}
         <img
@@ -170,8 +170,8 @@ export function BeforeAfterComparator({
               dragging ? 'scale-110 ring-4 ring-[var(--apple-focus-ring)]' : ''
             }`}
           >
-            <SFChevronLeft size={12} className="-mr-0.5" />
-            <SFChevronRight size={12} className="-ml-0.5" />
+            <ChevronLeft size={12} strokeWidth={2} aria-hidden="true" className="-mr-0.5" />
+            <ChevronRight size={12} strokeWidth={2} aria-hidden="true" className="-ml-0.5" />
           </div>
         </div>
       </div>

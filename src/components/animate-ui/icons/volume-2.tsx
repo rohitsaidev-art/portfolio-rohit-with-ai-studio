@@ -22,12 +22,12 @@ const animations = {
       animation[`path${i}`] = {
         initial: { opacity: 1, scale: 1 },
         animate: {
-          opacity: [1, 0.25, 1],
-          scale: [1, 0.85, 1],
+          opacity: [1, 0.45, 1],
+          scale: [1, 0.94, 1],
           transition: {
-            duration: 0.5,
-            ease: 'easeInOut',
-            delay: 0.15 * (i - 1),
+            duration: 0.24,
+            ease: [0.23, 1, 0.32, 1],
+            delay: 0.06 * (i - 1),
           },
         },
       };
@@ -44,25 +44,12 @@ const animations = {
       animation[`path${i}`] = {
         initial: { opacity: 1, scale: 1 },
         animate: {
-          opacity: 0,
-          scale: 0,
+          opacity: [1, 0.35, 1],
+          scale: [1, 0.92, 1],
           transition: {
-            opacity: {
-              duration: 0.2,
-              ease: 'easeInOut',
-              repeat: 1,
-              repeatType: 'reverse',
-              repeatDelay: 0.2,
-              delay: 0.2 * (i - 1),
-            },
-            scale: {
-              duration: 0.2,
-              ease: 'easeInOut',
-              repeat: 1,
-              repeatType: 'reverse',
-              repeatDelay: 0.2,
-              delay: 0.2 * (i - 1),
-            },
+            duration: 0.24,
+            ease: [0.23, 1, 0.32, 1],
+            delay: 0.08 * (i - 1),
           },
         },
       };
@@ -84,7 +71,7 @@ function IconComponent({ size, ...props }: Volume2Props) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={2}
+      strokeWidth={1.75}
       strokeLinecap="round"
       strokeLinejoin="round"
       {...props}
